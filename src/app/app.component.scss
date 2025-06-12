@@ -1,0 +1,228 @@
+// Layout
+.site-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// Header
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  padding: 1rem 0;
+  
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  
+  .site-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--text-color);
+  }
+  
+  .auth-buttons {
+    display: flex;
+    gap: 0.5rem;
+    
+    @media (max-width: 768px) {
+      display: none;
+    }
+  }
+  
+  .mobile-menu-btn {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    cursor: pointer;
+    
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+}
+
+// Buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  
+  &-primary {
+    background-color: var(--primary-color);
+    color: rgb(0, 0, 0);
+    
+    &:hover {
+      background-color: var(--primary-color-dark);
+    }
+  }
+  
+  &-outline {
+    background-color: transparent;
+    border-color: var(--border-color);
+    
+    &:hover {
+      background-color: var(--secondary-color);
+    }
+  }
+  
+  &-block {
+    width: 100%;
+  }
+}
+
+// Login dropdown
+.login-dropdown {
+  position: relative;
+  
+  .login-form {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: 16rem;
+    padding: 1rem;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    z-index: 10;
+    
+    .login-title {
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    .login-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        
+        label {
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+        
+        input {
+          padding: 0.5rem;
+          border: 1px solid var(--border-color);
+          border-radius: var(--border-radius);
+          font-size: 0.875rem;
+          
+          &:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.1);
+          }
+        }
+      }
+    }
+    
+    .login-footer {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      
+      .forgot-password {
+        color: var(--text-muted);
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+// Footer
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--secondary-color);
+  padding: 2rem 0;
+  
+  .footer-content {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  
+  .footer-info {
+    max-width: 24rem;
+    text-align: center;
+    
+    .footer-title {
+      margin-bottom: 1rem;
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+    
+    .footer-description {
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      
+      .social-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 9999px;
+        color: var(--text-color);
+        transition: background-color 0.2s ease;
+        
+        &:hover {
+          background-color: var(--secondary-color-dark);
+        }
+      }
+    }
+  }
+  
+  .footer-copyright {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+  }
+}

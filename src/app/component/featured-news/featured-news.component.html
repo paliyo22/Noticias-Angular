@@ -1,0 +1,14 @@
+<div class="most-read">
+  <div class="card">
+    <h2 class="section-title">Lo más leído</h2>
+    <div class="most-read-list">
+      <div class="most-read-item" *ngFor="let item of mostReadNews; let i = index">
+        <div class="item-number">{{ i + 1 }}</div>
+        <div class="item-content">
+          <a [routerLink]="['/news', item.id]" class="item-title">{{ item.title }}</a>
+          <p class="item-time">{{ item.time }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

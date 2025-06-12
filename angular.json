@@ -17,6 +17,9 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
+            "security": {
+              "autoCsp": false
+            },
             "outputPath": "dist/jugando",
             "index": "src/index.html",
             "browser": "src/main.ts",

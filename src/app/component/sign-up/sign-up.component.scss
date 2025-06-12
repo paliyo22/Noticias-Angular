@@ -1,0 +1,381 @@
+// Importamos las variables globales
+
+
+.signup-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background-color: var(--secondary-color);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-width);
+  display: flex;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+  background-color: #fff;
+  
+  @media (max-width: 991px) {
+    flex-direction: column;
+  }
+}
+
+.signup-container {
+  flex: 1;
+  padding: 2rem;
+  max-width: 600px;
+  
+  @media (max-width: 991px) {
+    max-width: 100%;
+  }
+  
+  @media (min-width: 768px) {
+    padding: 3rem;
+  }
+}
+
+.signup-header {
+  margin-bottom: 2rem;
+  text-align: center;
+  
+  .logo {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: none;
+    }
+  }
+  
+  .title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+  }
+  
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+}
+
+.social-signup {
+  margin-bottom: 2rem;
+  
+  .social-text {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+  
+  .social-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    
+    @media (max-width: 576px) {
+      flex-direction: column;
+    }
+  }
+  
+  .social-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    
+    &:hover {
+      background-color: var(--secondary-color);
+    }
+    
+    &:active {
+      transform: translateY(1px);
+    }
+    
+    &.google {
+      color: #DB4437;
+    }
+    
+    &.facebook {
+      color: #4267B2;
+    }
+    
+    &.apple {
+      color: #000000;
+    }
+  }
+  
+  .divider {
+    position: relative;
+    text-align: center;
+    margin: 1.5rem 0;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background-color: var(--border-color);
+    }
+    
+    span {
+      position: relative;
+      display: inline-block;
+      padding: 0 0.75rem;
+      background-color: white;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.signup-form {
+  .form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    
+    @media (max-width: 576px) {
+      flex-direction: column;
+      gap: 0;
+    }
+    
+    .form-group {
+      flex: 1;
+    }
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+    }
+    
+    &.checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      
+      input[type="checkbox"] {
+        margin-top: 0.25rem;
+      }
+      
+      label {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+        font-weight: normal;
+        color: var(--text-color);
+      }
+    }
+    
+    .password-input {
+      position: relative;
+      
+      .password-toggle {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        
+        &:hover {
+          color: var(--text-color);
+        }
+      }
+    }
+    
+    .password-strength {
+      margin-top: 0.5rem;
+      
+      .strength-meter {
+        height: 4px;
+        background-color: var(--border-color);
+        border-radius: 2px;
+        margin-bottom: 0.25rem;
+        
+        .strength-bar {
+          height: 100%;
+          border-radius: 2px;
+          
+          &.weak {
+            width: 33.33%;
+            background-color: var(--urgent-color);
+          }
+          
+          &.medium {
+            width: 66.66%;
+            background-color: #f59e0b;
+          }
+          
+          &.strong {
+            width: 100%;
+            background-color: #10b981;
+          }
+        }
+      }
+      
+      .strength-text {
+        font-size: 0.75rem;
+        
+        &.weak {
+          color: var(--urgent-color);
+        }
+        
+        &.medium {
+          color: #f59e0b;
+        }
+        
+        &.strong {
+          color: #10b981;
+        }
+      }
+    }
+    
+    .form-error {
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--urgent-color);
+    }
+  }
+  
+  .form-actions {
+    margin-top: 2rem;
+    
+    // Reutilizamos la clase .btn definida en styles.scss
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      font-size: 1rem;
+    }
+  }
+}
+
+.signup-footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  
+  .link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.signup-image {
+  flex: 1;
+  position: relative;
+  background-image: url('/assets/images/signup-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  min-height: 400px;
+  display: none;
+  
+  @media (min-width: 992px) {
+    display: block;
+  }
+  
+  .image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4));
+  }
+  
+  .image-content {
+    position: relative;
+    z-index: 1;
+    padding: 3rem;
+    color: white;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+    
+    .benefits-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      
+      li {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        
+        svg {
+          flex-shrink: 0;
+          color: var(--primary-color);
+        }
+        
+        span {
+          font-size: 1.125rem;
+        }
+      }
+    }
+  }
+}
+
+// Reutilizamos la clase .link definida en styles.scss
+.link {
+  color: var(--primary-color);
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}

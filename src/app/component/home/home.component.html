@@ -1,0 +1,83 @@
+<main>
+  <section class="featured-section">
+    <div class="container">
+      <div class="featured-grid">
+        <div class="main-story">
+          <a [routerLink]="['/news', mainStory.id]" class="story-link">
+            <div class="story-image">
+              <img [src]="mainStory.imageUrl"> <!-- Eliminado el [alt] como solicitaste -->
+              <div class="image-overlay"></div>
+              <div class="story-content">
+                <span class="badge badge-urgent">Última hora</span>
+                <h1 class="story-title">{{ mainStory.title }}</h1>
+                <p class="story-excerpt">{{ mainStory.excerpt }}</p>
+                <div class="story-meta">
+                  <span>{{ mainStory.time }}</span>
+                  <span class="separator">·</span>
+                  <span>{{ mainStory.author }}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+        
+        <!-- Componente de noticias destacadas -->
+        <app-featured-news/>
+      </div>
+    </div>
+  </section>
+
+  <section class="news-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Noticias</h2>
+      </div>
+      
+      <div class="news-grid">
+        <article class="news-card" *ngFor="let news of newsList">
+          <div class="card-image">
+            <img [src]="news.imageUrl" [alt]="news.title">
+          </div>
+          <div class="card-content">
+            <span class="category-tag">{{ news.category }}</span>
+            <h3 class="card-title"><a [routerLink]="['/news', news.id]">{{ news.title }}</a></h3>
+            <p class="card-excerpt">{{ news.excerpt }}</p>
+            <div class="card-meta">
+              <span>{{ news.time }}</span>
+              <span>{{ news.author }}</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Paginación centrada -->
+      <div class="pagination">
+        <button class="pagination-btn" [disabled]="currentPage === 1" (click)="goToPreviousPage()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Anterior
+        </button>
+        
+        <div class="pagination-pages">
+          <button 
+            *ngFor="let page of getVisiblePages()" 
+            class="page-number" 
+            [class.active]="page === currentPage"
+            [class.ellipsis]="page === '...'"
+            [disabled]="page === '...'"
+            (click)="page !== '...' && goToPage(page)">
+            {{ page }}
+          </button>
+        </div>
+        
+        <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="goToNextPage()">
+          Siguiente
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
