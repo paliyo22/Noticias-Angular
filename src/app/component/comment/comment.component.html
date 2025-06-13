@@ -1,1 +1,59 @@
+<section class="comments-section">
+  <h2 class="section-title">Comentarios</h2>
 
+  <!-- Formulario de comentario (solo si está logueado) -->
+  <div class="comment-form" *ngIf="loggedIn">
+    <h3 class="form-title">Deja tu comentario</h3>
+    <form (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="comment">Comentario</label>
+        <textarea id="comment" name="comment" rows="4" [(ngModel)]="newComment" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Enviar comentario</button>
+    </form>
+  </div>
+
+  <div class="comment-login-warning" *ngIf="!loggedIn">
+    <p><strong>Inicia sesión para dejar un comentario.</strong></p>
+  </div>
+
+  <!-- Lista de comentarios -->
+  <div class="comments-list">
+    <div class="comment" *ngFor="let comment of comments">
+      <div class="comment-header">
+        <div class="comment-author">
+          <div class="author-avatar">
+            <img [src]="'/image.png'" [alt]="comment.username">
+          </div>
+          <div class="author-info">
+            <span class="author-name">{{ comment.username }}</span>
+            <span class="comment-date">{{ comment.created | date:'dd MMM yyyy, HH:mm' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="comment-content">
+        <p>{{ comment.content }}</p>
+      </div>
+
+      <!-- Respuestas (anidadas) -->
+      <div class="nested-comments" *ngIf="comment.replies > 0">
+        <!-- Aquí podrías llamar getReplies si se expande -->
+        <p class="nested-info">Este comentario tiene {{ comment.replies }} respuestas.</p>
+      </div>
+    </div>
+    <!-- Lista de comentarios -->
+    <div class="comments-list">
+    <ng-container *ngIf="comments.length > 0; else noComments">
+        <div class="comment" *ngFor="let comment of comments">
+        <!-- Comentario mostrado normalmente -->
+        ...
+        </div>
+    </ng-container>
+
+    <!-- Mensaje si no hay comentarios -->
+    <ng-template #noComments>
+        <p class="no-comments-msg">Aún no hay comentarios. ¡Sé el primero en comentar!</p>
+    </ng-template>
+    </div>
+  </div>
+</section>

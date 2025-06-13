@@ -1,4 +1,4 @@
-import { string, email, minLength, object, date, toMaxValue, optional, boolean, maxValue, enum_, uuid, pipe, InferInput, partial, safeParse } from "valibot";
+import { string, email, minLength, object, date, toMaxValue, optional, boolean, maxValue, enum_, uuid, pipe, InferInput, partial, safeParse, union } from "valibot";
 import { Role } from "../enum/role";
 
 const emailSchema = pipe(string(), email());
@@ -12,7 +12,7 @@ const sessionSchema = object({
 const userSchema = object({
     name: string(),
     lastname: string(),
-    birthday: pipe(date(), toMaxValue(new Date())),
+    birthday: pipe(union([string(), date()]), toMaxValue(new Date())),
     subscription: boolean(),
     email: emailSchema,
     password: optional(passwordSchema),
@@ -58,3 +58,4 @@ export const validateAuth = (input: unknown) => {
 export const validatePassword = (input: unknown) => {
     return safeParse(passwordSchema, input);
 }
+

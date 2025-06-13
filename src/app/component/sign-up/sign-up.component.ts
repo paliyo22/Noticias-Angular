@@ -1,85 +1,83 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, inject, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AuthService } from '../../service/auth.service';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-sign-up',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, 
+    ReactiveFormsModule],
   templateUrl: './sign-up.component.html',
   styleUrl: './sign-up.component.scss'
 })
-export class SignUpComponent {
-
-  user = {
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    acceptTerms: false,
-    subscribeNewsletter: false
-  };
-
+export class SignUpComponent implements OnInit {
+  signupForm!: FormGroup;
   showPassword = false;
   formSubmitted = false;
 
-  constructor(private router: Router) {}
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  togglePassword() {
+  ngOnInit(): void {
+    this.signupForm = this.fb.group({
+      name: ['', Validators.required],
+      lastname: ['', Validators.required],
+      username: ['', [Validators.required, Validators.minLength(4)]],
+      birthday: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', Validators.required]
+    }, { validators: this.passwordMatchValidator });
+  }
+
+  passwordMatchValidator(group: FormGroup) {
+    const password = group.get('password')?.value;
+    const confirm = group.get('confirmPassword')?.value;
+    return password === confirm ? null : { notMatching: true };
+  }
+
+  togglePassword(): void {
     this.showPassword = !this.showPassword;
   }
 
-  isValidEmail(email: string): boolean {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email);
+  getPasswordStrengthText(): string {
+    const pass = this.signupForm.get('password')?.value || '';
+    if (pass.length < 8) return 'Débil';
+    if (/[A-Z]/.test(pass) && /\d/.test(pass)) return 'Fuerte';
+    return 'Media';
   }
 
   getPasswordStrengthClass(): string {
-    if (!this.user.password) return '';
-    
-    const hasUpperCase = /[A-Z]/.test(this.user.password);
-    const hasLowerCase = /[a-z]/.test(this.user.password);
-    const hasNumbers = /\d/.test(this.user.password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(this.user.password);
-    
-    const strength = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length;
-    
-    if (this.user.password.length < 8) return 'weak';
-    if (strength <= 2) return 'weak';
-    if (strength === 3) return 'medium';
-    return 'strong';
+    const pass = this.signupForm.get('password')?.value || '';
+    if (pass.length < 8) return 'weak';
+    if (/[A-Z]/.test(pass) && /\d/.test(pass)) return 'strong';
+    return 'medium';
   }
 
-  getPasswordStrengthText(): string {
-    const strengthClass = this.getPasswordStrengthClass();
-    if (strengthClass === 'weak') return 'Débil';
-    if (strengthClass === 'medium') return 'Media';
-    if (strengthClass === 'strong') return 'Fuerte';
-    return '';
-  }
+  onSubmit(): void {
+  this.formSubmitted = true;
 
-  onSubmit() {
-    this.formSubmitted = true;
-    
-    // Validación básica
-    if (
-      !this.user.firstName ||
-      !this.user.lastName ||
-      !this.user.email ||
-      !this.isValidEmail(this.user.email) ||
-      !this.user.password ||
-      this.user.password.length < 8 ||
-      this.user.password !== this.user.confirmPassword ||
-      !this.user.acceptTerms
-    ) {
-      return;
-    }
-    
-    // Aquí iría la lógica para enviar los datos al servidor
-    console.log('Formulario enviado:', this.user);
-    
-    // Redireccionar al usuario
-    this.router.navigate(['/']);
-  }
+  if (this.signupForm.invalid) return;
+
+  const { confirmPassword, ...formValue } = this.signupForm.value;
+
+  // ✅ Asegurarse de que birthday sea un Date real
+  const payload = {
+  ...formValue, // Conversión a Date
+  subscription: false,
+  role: 'user',
+  is_active: true
+};
+  console.log(this.signupForm.value);
+
+  this.authService.register(payload).subscribe({
+    next: () => this.router.navigate(['/']),
+    error: (err) => console.error('Registro fallido', err)
+  });
+}
+
 }

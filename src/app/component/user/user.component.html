@@ -1,1 +1,40 @@
-<p>user works!</p>
+<div class="user-profile-container" *ngIf="user">
+  <h2>Perfil de Usuario</h2>
+
+  <div *ngIf="!editMode">
+    <p><strong>Nombre:</strong> {{ user.name }}</p>
+    <p><strong>Apellido:</strong> {{ user.lastname }}</p>
+    <p><strong>Correo:</strong> {{ user.email }}</p>
+    <p><strong>Fecha de nacimiento:</strong> {{ user.birthday | date }}</p>
+    <p><strong>Suscripción:</strong> {{ user.subscription ? 'Sí' : 'No' }}</p>
+    <p><strong>Rol:</strong> {{ user.role }}</p>
+
+    <button (click)="toggleEditMode()">Editar datos</button>
+  </div>
+
+  <form *ngIf="editMode" [formGroup]="userForm" (ngSubmit)="updateUser()">
+    <label>Nombre: <input formControlName="name"></label>
+    <label>Apellido: <input formControlName="lastname"></label>
+    <label>Correo: <input formControlName="email"></label>
+    <label>Fecha de nacimiento: <input type="date" formControlName="birthday"></label>
+    <label>Suscripción:
+      <input type="checkbox" formControlName="subscription">
+    </label>
+
+    <button type="submit" [disabled]="userForm.invalid">Guardar</button>
+    <button type="button" (click)="toggleEditMode()">Cancelar</button>
+  </form>
+
+  <hr />
+
+  <h3>Cambiar contraseña</h3>
+  <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+    <label>Contraseña actual:
+      <input type="password" formControlName="oldPass">
+    </label>
+    <label>Nueva contraseña:
+      <input type="password" formControlName="newPass">
+    </label>
+    <button type="submit" [disabled]="passwordForm.invalid">Actualizar contraseña</button>
+  </form>
+</div>

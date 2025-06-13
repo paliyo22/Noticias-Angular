@@ -13,7 +13,8 @@ const commentSchema = object({
 const commentOutput = object({
     ...commentSchema.entries,
     likes: number(),
-    replies: number()
+    replies: number(),
+    username: string()
 })
 export type CommentInput = InferInput<typeof commentSchema>
 

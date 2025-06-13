@@ -1,0 +1,44 @@
+<div class="admin-container">
+  <h2>Panel de Administración</h2>
+
+  <div class="admin-actions">
+    <h3>Acciones Críticas</h3>
+
+    <!-- Contraseña necesaria para limpiar usuarios -->
+    <div class="form-group">
+      <label for="adminPassword">Contraseña de administrador</label>
+      <input
+        type="password"
+        id="adminPassword"
+        [(ngModel)]="adminPassword"
+        placeholder="Ingresa tu contraseña"
+      />
+    </div>
+
+    <button class="btn btn-danger" (click)="cleanUsers()">Limpiar Usuarios</button>
+    <button class="btn btn-danger" (click)="cleanNews()">Limpiar Noticias</button>
+  </div>
+
+  <div class="admin-options">
+    <h3>Opciones de Gestión</h3>
+    <ul class="admin-menu">
+      <li><a routerLink="/admin/ban-news">Ver Noticias Baneadas</a></li>
+      <li><a routerLink="/admin/users">Ver Usuarios</a></li>
+    </ul>
+  </div>
+
+  <div class="user-search">
+    <h3>Buscar Usuario</h3>
+    <input
+      type="text"
+      [(ngModel)]="searchQuery"
+      placeholder="Ingresar email o nombre..."
+    />
+    <button class="btn btn-primary" (click)="searchUser()">Buscar</button>
+  </div>
+
+  <div *ngIf="searchResult">
+    <h4>Resultado:</h4>
+    <pre>{{ searchResult | json }}</pre>
+  </div>
+</div>

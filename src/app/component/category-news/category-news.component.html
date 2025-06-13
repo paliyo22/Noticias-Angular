@@ -1,157 +1,52 @@
-
-<section class="category-news">
-  <div class="container">
-    <div class="category-header">
-      <h1 class="category-title">{{ category }}</h1>
-      <div class="category-description" *ngIf="categoryDescription">
-        <p>{{ categoryDescription }}</p>
+<main>
+  <!-- Título fijo de la categoría -->
+  <section class="news-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">{{ categoryName }}</h2>
       </div>
-      <div class="category-filters">
-        <div class="filter-group">
-          <label for="sortBy">Ordenar por:</label>
-          <select id="sortBy" [(ngModel)]="sortBy" (change)="applySorting()">
-            <option value="recent">Más recientes</option>
-            <option value="popular">Más populares</option>
-            <option value="relevant">Más relevantes</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label for="timeFrame">Periodo:</label>
-          <select id="timeFrame" [(ngModel)]="timeFrame" (change)="applyFilters()">
-            <option value="all">Todo</option>
-            <option value="today">Hoy</option>
-            <option value="week">Esta semana</option>
-            <option value="month">Este mes</option>
-          </select>
-        </div>
-      </div>
-    </div>
 
-    <!-- Noticias destacadas de la categoría -->
-    <div class="featured-category-news" *ngIf="featuredNews && featuredNews.length > 0">
-      <div class="featured-grid">
-        <div class="main-story">
-          <a [routerLink]="['/noticia', featuredNews[0].id]" class="story-link">
-            <div class="story-image">
-              <img [src]="featuredNews[0].imageUrl" [alt]="featuredNews[0].title">
-              <div class="image-overlay"></div>
-            </div>
-            <div class="story-content">
-              <span class="badge badge-category">{{ category }}</span>
-              <h2 class="story-title">{{ featuredNews[0].title }}</h2>
-              <p class="story-excerpt">{{ featuredNews[0].excerpt }}</p>
-              <div class="story-meta">
-                <span>{{ featuredNews[0].publishDate | date:'dd MMM yyyy, HH:mm' }}</span>
-                <span class="separator">·</span>
-                <span>Por {{ featuredNews[0].author }}</span>
-              </div>
-            </div>
-          </a>
-        </div>
-        <div class="secondary-stories" *ngIf="featuredNews.length > 1">
-          <div class="secondary-story" *ngFor="let news of featuredNews | slice:1:3">
-            <a [routerLink]="['/noticia', news.id]" class="story-link">
-              <div class="story-image">
-                <img [src]="news.imageUrl" [alt]="news.title">
-                <div class="image-overlay"></div>
-              </div>
-              <div class="story-content">
-                <h3 class="story-title">{{ news.title }}</h3>
-                <div class="story-meta">
-                  <span>{{ news.publishDate | date:'dd MMM yyyy' }}</span>
-                </div>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lista de noticias de la categoría -->
-    <div class="category-news-list">
-      <div class="news-grid">
-        <article class="news-card" *ngFor="let news of categoryNews">
+      <!-- Noticias en cuadrícula de 4 columnas -->
+      <div class="news-grid four-columns">
+        <article class="news-card" *ngFor="let news of newsList$ | async">
           <div class="card-image">
-            <a [routerLink]="['/noticia', news.id]">
-              <img [src]="news.imageUrl" [alt]="news.title">
-            </a>
+            <img [src]="news.image_url ? news.image_url : '/image.png'" [alt]="news.title">
           </div>
           <div class="card-content">
-            <span class="category-tag" *ngIf="news.subcategory">{{ news.subcategory }}</span>
             <h3 class="card-title">
-              <a [routerLink]="['/noticia', news.id]">{{ news.title }}</a>
+              <a [routerLink]="['/news', news.id]">{{ news.title }}</a>
             </h3>
-            <p class="card-excerpt">{{ news.excerpt }}</p>
+            <p class="card-excerpt">{{ news.snippet }}</p>
             <div class="card-meta">
-              <span>{{ news.publishDate | date:'dd MMM yyyy' }}</span>
-              <span>Por {{ news.author }}</span>
+              <span>{{ news.timestamp | date: 'dd/MM/yyyy' }}</span>
+              <span>{{ news.publisher }}</span>
             </div>
           </div>
         </article>
       </div>
+    </div>
+  </section>
 
-      <!-- Paginación -->
-      <div class="pagination" *ngIf="totalPages > 1">
-        <button 
-          class="pagination-btn prev" 
-          [disabled]="currentPage === 1"
-          (click)="changePage(currentPage - 1)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-          Anterior
-        </button>
-        <div class="pagination-pages">
-          <button 
-            *ngFor="let page of getPageNumbers()" 
-            class="page-number" 
-            [class.active]="page === currentPage"
-            (click)="changePage(page)">
-            {{ page }}
-          </button>
-        </div>
-        <button 
-          class="pagination-btn next" 
-          [disabled]="currentPage === totalPages"
-          (click)="changePage(currentPage + 1)">
-          Siguiente
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
-      </div>
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="currentPage$ | async as currentPage">
+    <button class="pagination-btn" [disabled]="currentPage === 1" (click)="goToPreviousPage()">
+      Anterior
+    </button>
+
+    <div class="pagination-pages">
+      <button 
+        *ngFor="let page of getVisiblePages(currentPage)" 
+        class="page-number" 
+        [class.active]="page === currentPage"
+        [class.ellipsis]="page === '...'"
+        [disabled]="page === '...'"
+        (click)="page !== '...' && goToPage(page)">
+        {{ page }}
+      </button>
     </div>
 
-    <!-- Sección de lo más leído en esta categoría -->
-    <div class="category-most-read">
-      <h2 class="section-title">Lo más leído en {{ category }}</h2>
-      <div class="most-read-list">
-        <div class="most-read-item" *ngFor="let item of mostReadNews; let i = index">
-          <div class="item-number">{{ i + 1 }}</div>
-          <div class="item-content">
-            <a [routerLink]="['/noticia', item.id]" class="item-title">{{ item.title }}</a>
-            <span class="item-time">{{ item.publishDate | date:'dd MMM yyyy' }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Suscripción a la categoría -->
-    <div class="category-subscribe" *ngIf="showSubscribe">
-      <div class="subscribe-content">
-        <h3>Mantente al día con {{ category }}</h3>
-        <p>Recibe las últimas noticias de {{ category }} directamente en tu correo electrónico.</p>
-        <form (ngSubmit)="subscribeToCategory()" class="subscribe-form">
-          <div class="form-group">
-            <input type="email" [(ngModel)]="subscribeEmail" name="email" placeholder="Tu correo electrónico" required>
-            <button type="submit" class="btn btn-primary">Suscribirse</button>
-          </div>
-          <div class="form-check">
-            <input type="checkbox" id="terms" [(ngModel)]="acceptTerms" name="terms" required>
-            <label for="terms">Acepto recibir comunicaciones sobre {{ category }}</label>
-          </div>
-        </form>
-      </div>
-    </div>
+    <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="goToNextPage()">
+      Siguiente
+    </button>
   </div>
-</section>
+</main>

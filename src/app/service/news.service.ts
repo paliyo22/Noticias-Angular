@@ -13,7 +13,7 @@ export class NewsService {
   private apiUrl = 'http://localhost:1234';
   private http = inject(HttpClient);
 
-  getNews(limit?: number, offset?: number): Observable<NewsOutput[]> {
+  getNews(limit?: number, offset?: number): Observable<{ data: NewsOutput[], total: number }> {
     let params = new HttpParams();
 
     if (limit !== undefined) {
@@ -22,13 +22,13 @@ export class NewsService {
     if (offset !== undefined) {
       params = params.set('offset', offset.toString());
     }
-    return this.http.get<NewsOutput[]>(`${this.apiUrl}/news`, {params})
+    return this.http.get<{ data: NewsOutput[], total: number }>(`${this.apiUrl}/news`, {params})
       .pipe(map(news => {
         return news
       }));
   }
 
-  getInactive(limit?: number, offset?: number): Observable<NewsOutput[]> {
+  getInactive(limit?: number, offset?: number): Observable<{ data: NewsOutput[], total: number }> {
     let params = new HttpParams();
 
     if (limit !== undefined) {
@@ -37,7 +37,7 @@ export class NewsService {
     if (offset !== undefined) {
       params = params.set('offset', offset.toString());
     }
-    return this.http.get<NewsOutput[]>(`${this.apiUrl}/news/inactive`, {params, withCredentials: true })
+    return this.http.get<{ data: NewsOutput[], total: number }>(`${this.apiUrl}/news/inactive`, {params, withCredentials: true })
       .pipe(map(news => {
         return news
       }));
@@ -56,11 +56,19 @@ export class NewsService {
       }));
   }
 
-  getById(id: string): Observable<NewsOutput> {
+  getById(id: string): Observable<{news: NewsOutput, subNews?: NewsOutput[]}> {
 
-    return this.http.get<NewsOutput>(`${this.apiUrl}/news/${id}`)
+    return this.http.get<{news: NewsOutput, subNews?: NewsOutput[]}>(`${this.apiUrl}/news/${id}`)
       .pipe(map(news => {
         return news
+      }));
+  }
+
+  getNewsComments(id: string): Observable<CommentOutput[]> {
+
+    return this.http.get<CommentOutput[]>(`${this.apiUrl}/news/newsComment/${id}`)
+      .pipe(map(comments => {
+        return comments
       }));
   }
 
@@ -89,7 +97,7 @@ export class NewsService {
     return this.http.post<void>(`${this.apiUrl}/news/fetch`,{});
   } 
 
-  getCategory(category: Category, limit?: number, offset?: number): Observable<NewsOutput[]> {
+  getCategory(category: Category, limit?: number, offset?: number): Observable<{ data: NewsOutput[], total: number }> {
     let params = new HttpParams();
 
     if (limit !== undefined) {
@@ -98,7 +106,7 @@ export class NewsService {
     if (offset !== undefined) {
       params = params.set('offset', offset.toString());
     }
-    return this.http.get<NewsOutput[]>(`${this.apiUrl}/news/${category}`, {params})
+    return this.http.get<{ data: NewsOutput[], total: number }>(`${this.apiUrl}/news/category/${category}`, {params})
       .pipe(map(news => {
         return news
       }));

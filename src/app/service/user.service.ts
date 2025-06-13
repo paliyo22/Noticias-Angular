@@ -9,6 +9,8 @@ import { CommentOutput } from '../schema/comment';
 })
 export class UserService {
    
+  constructor(){}
+  
   private apiUrl = 'http://localhost:1234';
   private http = inject(HttpClient);
   
@@ -33,7 +35,7 @@ export class UserService {
 
   update(user: Partial<UserInput>): Observable<UserOutput>{
     return this.http.patch<UserOutput>(`${this.apiUrl}/user/update`,
-      {user}, {withCredentials: true}
+      user, {withCredentials: true}
     );
   }
 
@@ -43,9 +45,9 @@ export class UserService {
     );
   }
 
-  clean(): Observable<void>{
+  clean(password: string): Observable<void>{
     return this.http.delete<void>(`${this.apiUrl}/user/erase`,
-      {withCredentials: true}
+      {body: {password}, withCredentials: true}
     );
   }
 
@@ -71,6 +73,12 @@ export class UserService {
     return this.http.delete<void>(`${this.apiUrl}/user/like/${id}`,
       {withCredentials: true}
     )
+  }
+
+  isLiked(id: string): Observable<boolean>{
+    return this.http.get<boolean>(`${this.apiUrl}/user/like/${id}`,
+      {withCredentials: true}
+    );
   }
 }
   

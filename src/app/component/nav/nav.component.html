@@ -1,10 +1,12 @@
 <nav class="main-nav">
   <ul>
-    <li><a routerLink="/politica" routerLinkActive="active">Política</a></li>
-    <li><a routerLink="/economia" routerLinkActive="active">Economía</a></li>
-    <li><a routerLink="/deportes" routerLinkActive="active">Deportes</a></li>
-    <li><a routerLink="/tecnologia" routerLinkActive="active">Tecnología</a></li>
-    <li><a routerLink="/cultura" routerLinkActive="active">Cultura</a></li>
-    <li><a routerLink="/opinion" routerLinkActive="active">Opinión</a></li>
+    <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a></li>
+    <li><a routerLink="/category/world" routerLinkActive="active">Internacional</a></li>
+    <li><a routerLink="/category/business" routerLinkActive="active">Empresarial</a></li>
+    <li><a routerLink="/category/sport" routerLinkActive="active">Deportes</a></li>
+    <li><a routerLink="/category/technology" routerLinkActive="active">Tecnología</a></li>
+    <li><a routerLink="/category/entertainment" routerLinkActive="active">Entretenimiento</a></li>
+    <li><a routerLink="/category/science" routerLinkActive="active">Ciencia</a></li>
+    <li><a routerLink="/category/health" routerLinkActive="active">Salud</a></li>
   </ul>
 </nav>

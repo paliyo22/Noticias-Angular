@@ -2,11 +2,11 @@
   <div class="card">
     <h2 class="section-title">Lo más leído</h2>
     <div class="most-read-list">
-      <div class="most-read-item" *ngFor="let item of mostReadNews; let i = index">
+      <div class="most-read-item" *ngFor="let item of news; let i = index">
         <div class="item-number">{{ i + 1 }}</div>
         <div class="item-content">
           <a [routerLink]="['/news', item.id]" class="item-title">{{ item.title }}</a>
-          <p class="item-time">{{ item.time }}</p>
+          <p class="item-time">{{ item.timestamp | date: 'dd/MM/yyyy HH:mm' }}</p>
         </div>
       </div>
     </div>

@@ -12,17 +12,17 @@ export class AuthService {
   private apiUrl = 'http://localhost:1234';
   private http = inject(HttpClient);
   
-  register(user: UserInput): Observable<Session> {
+  register(body: UserInput): Observable<Session> {
     return this.http.post<Session>(
       `${this.apiUrl}/auth/register`,
-      {user}, { withCredentials: true }
+      body, { withCredentials: true }
     );
   }
 
   logIn(auth: AuthInput): Observable<Session> {
     return this.http.post<Session>(
       `${this.apiUrl}/auth/login`,
-      {auth}, { withCredentials: true }
+      auth, { withCredentials: true }
     );
   }
 
