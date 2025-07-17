@@ -1,81 +1,93 @@
-<main>
-    <!-- Sección noticia destacada -->
-  <section class="featured-section" *ngIf="mainStory$ | async as mainStory">
-    <div class="container">
-      <div class="featured-grid">
-        <div class="main-story">
-          <a [routerLink]="['/news', mainStory.id]" class="story-link">
-            <div class="story-image">
-              <img [src]="mainStory.image_url">
-              <div class="image-overlay"></div>
-              <div class="story-content">
-                <span class="badge badge-urgent">Última hora</span>
-                <h1 class="story-title">{{ mainStory.title }}</h1>
-                <p class="story-excerpt">{{ mainStory.snippet }}</p>
-                <div class="story-meta">
-                  <span>{{ mainStory.timestamp | date: 'dd/MM/yyyy' }}</span>
-                  <span class="separator">·</span>
-                  <span>{{ mainStory.publisher }}</span>
-                </div>
-              </div>
-            </div>
-          </a>
-        </div>
+@let newsObject = newsService.state();
 
-        <!-- Componente de noticias destacadas -->
-        <app-featured-news />
-      </div>
-    </div>
-  </section>
+<main class="home-container">
+  <!-- Componente de noticias destacadas -->
+  <app-featured-news></app-featured-news>
 
   <!-- Sección noticias normales -->
   <section class="news-section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Noticias</h2>
+        <h2 class="section-title">Últimas Noticias</h2>
       </div>
 
-      <div class="news-grid">
-        <article class="news-card" *ngFor="let news of paginatedNews$ | async">
-          <div class="card-image">
-            <img [src]="news.image_url ? news.image_url : '/image.png'" [alt]="news.title">
+      @if (newsObject.news.loading) {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Cargando noticias...</p>
+        </div>
+      } @else if (newsObject.news.error) {
+        <div class="error-state">
+          <p>Error al cargar las noticias</p>
+          <button class="btn btn-primary" (click)="retry()">Reintentar</button>
+        </div>
+      } @else {
+        @let currentPageData = newsObject.news.data.get(currentPage());
+        @if (currentPageData && currentPageData.length > 0) {
+          <div class="news-grid">
+            @for (news of currentPageData; track news.id) {
+              <article class="news-card">
+                <div class="card-image">
+                  <img [src]="news.image_url || '/image.png'" [alt]="news.title">
+                </div>
+                <div class="card-content">
+                  <span class="category-tag">{{ getCategory(news.category) }}</span>
+                  <h3 class="card-title">
+                    <a [routerLink]="['/news', news.id]">{{ news.title }}</a>
+                  </h3>
+                  <p class="card-excerpt">{{ news.snippet }}</p>
+                  <div class="card-meta">
+                    <span>{{ news.timestamp | date: 'dd/MM/yyyy' }}</span>
+                    <span>{{ news.publisher }}</span>
+                  </div>
+                </div>
+              </article>
+            }
           </div>
-          <div class="card-content">
-            <span class="category-tag">{{ getCategoryName(news.category) || 'Sin categoría' }}</span>
-            <h3 class="card-title"><a [routerLink]="['/news', news.id]">{{ news.title }}</a></h3> <!-- aca llama a news id -->
-            <p class="card-excerpt">{{ news.snippet }}</p>
-            <div class="card-meta">
-              <span>{{ news.timestamp | date: 'dd/MM/yyyy' }}</span>
-              <span>{{ news.publisher }}</span>
+
+          <!-- Paginación -->
+          @if (totalPages() > 1) {
+            <div class="pagination">
+              <button 
+                class="pagination-btn" 
+                [disabled]="currentPage() === 1" 
+                (click)="previousPage()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Anterior</span>
+              </button>
+
+              <div class="pagination-pages">
+                @for (page of getVisiblePages(); track page) {
+                  <button 
+                    class="page-number" 
+                    [class.active]="page === currentPage()"
+                    [class.ellipsis]="page === '...'"
+                    [disabled]="page === '...'"
+                    (click)="page !== '...' && goToPage(+page)">
+                    {{ page }}
+                  </button>
+                }
+              </div>
+
+              <button 
+                class="pagination-btn" 
+                [disabled]="currentPage() === totalPages()" 
+                (click)="nextPage()">
+                <span>Siguiente</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
             </div>
+          }
+        } @else {
+          <div class="empty-state">
+            <p>No hay noticias disponibles en esta página</p>
           </div>
-        </article>
-      </div>
+        }
+      }
     </div>
   </section>
-
-  <!-- Paginación -->
-  <div class="pagination" *ngIf="currentPage$ | async as currentPage">
-    <button class="pagination-btn" [disabled]="currentPage === 1" (click)="goToPreviousPage()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><polyline points="15 18 9 12 15 6"></polyline></svg>
-      Anterior
-    </button>
-
-    <div class="pagination-pages">
-      <button 
-        *ngFor="let page of getVisiblePages(currentPage)" 
-        class="page-number" 
-        [class.active]="page === currentPage"
-        [class.ellipsis]="page === '...'"
-        [disabled]="page === '...'"
-        (click)="page !== '...' && goToPage(page)">
-        {{ page }}
-      </button>
-    </div>
-
-    <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="goToNextPage()">
-      Siguiente
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </button>
-  </div>
 </main>

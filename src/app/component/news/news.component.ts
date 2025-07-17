@@ -1,101 +1,128 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import { CommentComponent } from "../comment/comment.component";
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NewsService } from '../../service/news.service';
-import { map, Observable, of, switchMap, tap } from 'rxjs';
-import { NewsOutput } from '../../schema/news';
+import { AuthService } from '../../service/auth.service';
 import { UserService } from '../../service/user.service';
-import { SessionService } from '../../service/session.service';
+import { CommentComponent } from "../comment/comment.component";
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { getCategoryNameFromValue } from '../../enum/category';
+import { FeaturedNewsComponent } from '../featured-news/featured-news.component';
+
 
 @Component({
   selector: 'app-news',
-  imports: [RouterModule, FormsModule, CommonModule, CommentComponent],
+  imports: [
+    RouterModule, CommonModule, 
+    CommentComponent, FeaturedNewsComponent
+  ],
   templateUrl: './news.component.html',
-  styleUrl: './news.component.scss'
+  styleUrl: './news.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class NewsComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
-  private newsService = inject(NewsService);
-  private userService = inject(UserService);
-  private sessionService = inject(SessionService); // <-- nuevo
+export class NewsComponent {
   
-  newsData$!: Observable<{ news: NewsOutput; subNews?: NewsOutput[] }>;
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private idParam: string | null = '';
 
-  // Variables locales
-  localLikes: number = 0;
-  originalLikes: number = 0;
-  userLiked: boolean = false;
-  loggedIn: boolean = false;
-  newsId: string = '';
-  userInitiallyLiked: boolean = false;
+  newsService = inject(NewsService);
+  authService = inject(AuthService);
+  userService = inject(UserService);
+ 
+  isCurrentlyLiked = computed(() => {
+    return this.userService.userState().result.state;
+  });
 
-  ngOnInit(): void {
-    this.newsData$ = this.route.paramMap.pipe(
-      switchMap((params) => {
-        const id = params.get('id');
-        if (!id) return of({ news: {} as NewsOutput });
+  logState = computed(() => {
+    return this.authService.authState().logged;
+  });
 
-        this.newsId = id;
+  private paramSubscription = this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+    this.idParam = params.get("id")
 
-        return this.newsService.getById(id).pipe(
-          tap(({ news }) => {
-            this.localLikes = news.likes;
-            this.originalLikes = news.likes;
-          }),
-          switchMap((data) =>
-            this.sessionService.isLoggedIn().pipe(
-              tap((isLogged) => {
-                this.loggedIn = isLogged;
-              }),
-              switchMap((isLogged) => {
-                if (!isLogged) return of(data);
-                return this.userService.isLiked(this.newsId).pipe(
-                  tap((isLiked) => (this.userLiked = isLiked)),
-                  map(() => data)
-                );
-              })
-            )
-          )
-        );
-      })
-    );
-  }
+    if (!this.idParam?.trim()) {
+      console.error("ID de noticia no válido, redirigiendo a error")
+      this.router.navigate(["/error"])
+      return
+    }
+
+    this.newsService.getById(this.idParam)
+
+    if (this.logState()) {
+      this.userService.isLiked(this.idParam)
+    }
+  })
 
   toggleLike(): void {
-    this.sessionService.isLoggedIn().subscribe((isLogged) => {
-      if (!isLogged) {
-        alert('Debes iniciar sesión para dar like.');
-        return;
-      }
+    if (!this.logState() || !this.idParam) {
+      console.error("Usuario no logueado o ID inválido")
+      return
+    }
 
-      this.loggedIn = true;
-
-      if (this.userLiked) {
-        if (this.localLikes > 0) this.localLikes--;
-      } else {
-        this.localLikes++;
-      }
-
-      this.userLiked = !this.userLiked;
-    });
+    if (this.isCurrentlyLiked()) {
+      this.userService.deleteLike(this.idParam)
+    } else {
+      this.userService.addLike(this.idParam)
+    }
   }
 
-  ngOnDestroy(): void {
-    if (!this.loggedIn || this.userLiked === this.userInitiallyLiked) return;
+  getCategory(category: string | undefined): string {
+    if(!category){
+      return '';
+    }
+    
+    let aux = getCategoryNameFromValue(category);
+    if(!aux){
+      aux = '';
+    }
+    return aux;
+  }
 
-    const likeAction = this.userLiked
-      ? this.userService.addNewsLike(this.newsId)
-      : this.userService.deleteLike(this.newsId);
-
-    likeAction.subscribe({
-      next: () => console.log('Like actualizado en backend'),
-      error: (err) => console.error('Error al actualizar like:', err),
-    });
+  retry(): void {
+    if (this.idParam) {
+      this.newsService.getById(this.idParam)
+    }
   }
   
-  openNewsUrl(url: string): void {
-    window.open(url, '_blank', 'noopener,noreferrer');
+  shareArticle(): void {
+    const news = this.newsService.state().singleNews.data;
+    if (!news) return;
+
+    if (navigator.share) {
+      navigator.share({
+        title: news.title,
+        text: news.snippet,
+        url: window.location.href
+      }).catch(console.error);
+    } else {
+      // Fallback: copiar URL al portapapeles
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        // Mostrar notificación de éxito
+        console.log('URL copiada al portapapeles');
+      }).catch(console.error);
+    }
   }
-}
+
+  openNewsUrl(event: Event, url: string): void {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (!url) {
+      console.warn("URL no válida")
+      return
+    }
+
+    try {
+      const newWindow = window.open(url, "_blank", "noopener,noreferrer")
+
+      if (newWindow && !newWindow.closed) {
+        newWindow.focus()
+      } 
+    } catch (error) {
+      if (confirm("Error al abrir el enlace. ¿Deseas intentar abrirlo en esta pestaña?")) {
+        window.location.href = url
+      }
+    }
+  }
+}    

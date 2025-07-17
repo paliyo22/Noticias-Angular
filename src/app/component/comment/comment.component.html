@@ -1,59 +1,460 @@
+@let commentObject = commentState();
+@let authObject = authState();
+
 <section class="comments-section">
-  <h2 class="section-title">Comentarios</h2>
+  <div class="comments-header">
+    <h2 class="section-title">Comentarios</h2>
+  </div>
 
   <!-- Formulario de comentario (solo si está logueado) -->
-  <div class="comment-form" *ngIf="loggedIn">
-    <h3 class="form-title">Deja tu comentario</h3>
-    <form (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <label for="comment">Comentario</label>
-        <textarea id="comment" name="comment" rows="4" [(ngModel)]="newComment" required></textarea>
-      </div>
-      <button type="submit" class="btn btn-primary">Enviar comentario</button>
-    </form>
-  </div>
-
-  <div class="comment-login-warning" *ngIf="!loggedIn">
-    <p><strong>Inicia sesión para dejar un comentario.</strong></p>
-  </div>
-
-  <!-- Lista de comentarios -->
-  <div class="comments-list">
-    <div class="comment" *ngFor="let comment of comments">
-      <div class="comment-header">
-        <div class="comment-author">
-          <div class="author-avatar">
-            <img [src]="'/image.png'" [alt]="comment.username">
+  @if (authObject.logged) {
+    <div class="comment-form-container">
+      <div class="comment-form">
+        <div class="form-header">
+          <div class="user-avatar">
+            <img src="/image.png" [alt]="authObject.username">
           </div>
-          <div class="author-info">
-            <span class="author-name">{{ comment.username }}</span>
-            <span class="comment-date">{{ comment.created | date:'dd MMM yyyy, HH:mm' }}</span>
+          <div class="form-info">
+            <span class="username">{{ authObject.username }}</span>
+            <span class="form-subtitle">Comparte tu opinión</span>
           </div>
         </div>
-      </div>
-      <div class="comment-content">
-        <p>{{ comment.content }}</p>
-      </div>
-
-      <!-- Respuestas (anidadas) -->
-      <div class="nested-comments" *ngIf="comment.replies > 0">
-        <!-- Aquí podrías llamar getReplies si se expande -->
-        <p class="nested-info">Este comentario tiene {{ comment.replies }} respuestas.</p>
+        
+        <form (ngSubmit)="onSubmitComment()" #commentForm="ngForm">
+          <div class="form-group">
+            <textarea 
+              id="newComment" 
+              name="newComment" 
+              rows="4" 
+              [(ngModel)]="newComment" 
+              placeholder="Escribe tu comentario aquí..."
+              required
+              maxlength="500"
+              class="comment-textarea">
+            </textarea>
+            <div class="textarea-footer">
+              <span class="char-count" [class.warning]="newComment.length > 450">
+                {{ newComment.length }}/500
+              </span>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button 
+              type="button" 
+              class="btn btn-outline"
+              (click)="clearComment()"
+              [disabled]="!newComment.trim()">
+              Limpiar
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-primary"
+              [disabled]="!newComment.trim() || commentObject.comment.loading">
+              @if (commentObject.comment.loading) {
+                <div class="loading-spinner-small"></div>
+                Enviando...
+              } @else {
+                Enviar comentario
+              }
+            </button>
+          </div>
+        </form>
       </div>
     </div>
+  } @else {
+    <div class="login-prompt">
+      <div class="login-prompt-content">
+        <h3>Únete a la conversación</h3>
+        <p>Inicia sesión para dejar comentarios y participar en la discusión</p>
+      </div>
+    </div>
+  }
+
+  <!-- Estados de carga y error -->
+  @if (commentObject.comment.loading && commentObject.comment.data.size === 0) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Cargando comentarios...</p>
+    </div>
+  } @else if (commentObject.comment.error) {
+    <div class="error-state">
+      <h3>Error al cargar comentarios</h3>
+      <p>{{ commentObject.comment.error }}</p>
+      <button class="btn btn-primary" (click)="retry()">Reintentar</button>
+    </div>
+  } @else {
     <!-- Lista de comentarios -->
     <div class="comments-list">
-    <ng-container *ngIf="comments.length > 0; else noComments">
-        <div class="comment" *ngFor="let comment of comments">
-        <!-- Comentario mostrado normalmente -->
-        ...
+      @if (commentObject.comment.data.size === 0) {
+        <div class="empty-state">
+          <h3>Aún no hay comentarios</h3>
+          <p>¡Sé el primero en compartir tu opinión!</p>
         </div>
-    </ng-container>
+      } @else {
+        @for (commentEntry of commentObject.comment.data | keyvalue; track commentEntry.key) {
+          @let comment = commentEntry.value.comment;
+          @let replies = commentEntry.value.replies;
+          @let likesCount = getLikesCount(commentEntry.key);
+          @let isLiked = isLikedByCurrentUser(commentEntry.key);
+          @let isOwner = isCommentOwner(comment.username);
 
-    <!-- Mensaje si no hay comentarios -->
-    <ng-template #noComments>
-        <p class="no-comments-msg">Aún no hay comentarios. ¡Sé el primero en comentar!</p>
-    </ng-template>
+          <article class="comment" [class.own-comment]="isOwner">
+            <div class="comment-header">
+              <div class="comment-author">
+                <div class="author-avatar">
+                  <img src="/image.png" [alt]="comment.username">
+                </div>
+                <div class="author-info">
+                  <span class="author-name">
+                    {{ comment.username }}
+                    @if (isOwner) {
+                      <span class="you-badge">Tú</span>
+                    }
+                  </span>
+                  <time class="comment-date" [dateTime]="comment.created">
+                    {{ comment.created | date:'dd MMM yyyy, HH:mm' }}
+                  </time>
+                </div>
+              </div>
+              
+              @if (isOwner) {
+                <div class="comment-actions">
+                  <button 
+                    class="action-btn delete-btn" 
+                    (click)="deleteComment(commentEntry.key, comment.username)"
+                    title="Eliminar comentario">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Contenido del comentario o formulario de edición -->
+            @if (activeEditForm === commentEntry.key) {
+              <div class="edit-form">
+                <form (ngSubmit)="onSubmitEdit(commentEntry.key)" #editForm="ngForm">
+                  <div class="form-group">
+                    <textarea 
+                      [(ngModel)]="editText" 
+                      name="editText"
+                      placeholder="Edita tu comentario..."
+                      rows="3"
+                      required
+                      maxlength="500"
+                      class="edit-textarea">
+                    </textarea>
+                    <div class="textarea-footer">
+                      <span class="char-count" [class.warning]="editText.length > 450">
+                        {{ editText.length }}/500
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="edit-actions">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline btn-sm"
+                      (click)="cancelEdit()">
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      class="btn btn-primary btn-sm"
+                      [disabled]="!editText.trim() || commentObject.comment.loading">
+                      @if (commentObject.comment.loading) {
+                        <div class="loading-spinner-small"></div>
+                        Guardando...
+                      } @else {
+                        Guardar
+                      }
+                    </button>
+                  </div>
+                </form>
+              </div>
+            } @else {
+              <div class="comment-content">
+                <p>{{ comment.content }}</p>
+              </div>
+            }
+
+            <div class="comment-footer">
+              <div class="comment-stats">
+                <!-- Botón de like -->
+                @if (authObject.logged) {
+                  <button 
+                    class="stat-btn like-btn"
+                    [class.liked]="isLiked"
+                    (click)="toggleLike(commentEntry.key)"
+                    [disabled]="commentObject.comment.loading">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span>Me gusta</span>
+                    @if (likesCount > 0) {
+                      <span class="like-count">{{ likesCount }}</span>
+                    }
+                  </button>
+                } @else {
+                  <span class="stat-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span>Me gusta</span>
+                    @if (likesCount > 0) {
+                      <span class="like-count">{{ likesCount }}</span>
+                    }
+                  </span>
+                }
+
+                <!-- Botón de responder -->
+                @if (authObject.logged) {
+                  <button 
+                    class="stat-btn reply-btn"
+                    (click)="toggleReplyForm(commentEntry.key)"
+                    [class.active]="activeReplyForm === commentEntry.key">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Responder
+                  </button>
+                }
+
+                <!-- Botón de editar (solo para el propietario) -->
+                @if (isOwner && authObject.logged) {
+                  <button 
+                    class="stat-btn edit-btn"
+                    (click)="toggleEditForm(commentEntry.key, comment.content)"
+                    [class.active]="activeEditForm === commentEntry.key">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Editar
+                  </button>
+                }
+
+                <!-- Mostrar número de respuestas si las hay -->
+                @if (comment.replies > 0) {
+                  <button 
+                    class="stat-btn replies-btn"
+                    (click)="toggleReplies(commentEntry.key)"
+                    [class.active]="expandedReplies.has(commentEntry.key)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="17 1 21 5 17 9"/>
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    </svg>
+                    <span>{{ comment.replies }} respuesta{{ comment.replies !== 1 ? 's' : '' }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron" [class.rotated]="expandedReplies.has(commentEntry.key)">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Formulario de respuesta -->
+            @if (activeReplyForm === commentEntry.key && authObject.logged) {
+              <div class="reply-form">
+                <div class="reply-form-header">
+                  <div class="user-avatar small">
+                    <img src="/image.png" [alt]="authObject.username">
+                  </div>
+                  <span class="replying-to">Respondiendo a {{ comment.username }}</span>
+                </div>
+                
+                <form (ngSubmit)="onSubmitReply(commentEntry.key)" #replyForm="ngForm">
+                  <div class="form-group">
+                    <textarea 
+                      [(ngModel)]="replyText" 
+                      name="replyText"
+                      placeholder="Escribe tu respuesta..."
+                      rows="3"
+                      required
+                      maxlength="300"
+                      class="reply-textarea">
+                    </textarea>
+                    <div class="textarea-footer">
+                      <span class="char-count" [class.warning]="replyText.length > 270">
+                        {{ replyText.length }}/300
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="reply-actions">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline btn-sm"
+                      (click)="cancelReply()">
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      class="btn btn-primary btn-sm"
+                      [disabled]="!replyText.trim() || commentObject.comment.loading">
+                      @if (commentObject.comment.loading) {
+                        <div class="loading-spinner-small"></div>
+                        Enviando...
+                      } @else {
+                        Responder
+                      }
+                    </button>
+                  </div>
+                </form>
+              </div>
+            }
+
+            <!-- Respuestas expandidas -->
+            @if (expandedReplies.has(commentEntry.key) && replies.length > 0) {
+              <div class="replies-container">
+                <div class="replies-header">
+                  <div class="replies-line"></div>
+                  <span class="replies-title">Respuestas</span>
+                </div>
+                
+                <div class="replies-list">
+                  @for (reply of replies; track reply.id) {
+                    @let replyLikesCount = getLikesCount(reply.id!);
+                    @let isReplyLiked = isLikedByCurrentUser(reply.id!);
+                    @let isReplyOwner = isCommentOwner(reply.username);
+
+                    <article class="reply" [class.own-reply]="isReplyOwner">
+                      <div class="reply-header">
+                        <div class="reply-author">
+                          <div class="author-avatar small">
+                            <img src="/image.png" [alt]="reply.username">
+                          </div>
+                          <div class="author-info">
+                            <span class="author-name">
+                              {{ reply.username }}
+                              @if (isReplyOwner) {
+                                <span class="you-badge">Tú</span>
+                              }
+                            </span>
+                            <time class="reply-date" [dateTime]="reply.created">
+                              {{ reply.created | date:'dd MMM yyyy, HH:mm' }}
+                            </time>
+                          </div>
+                        </div>
+                        
+                        @if (isReplyOwner) {
+                          <div class="reply-actions">
+                            <button 
+                              class="action-btn delete-btn small" 
+                              (click)="deleteComment(reply.id!, reply.username)"
+                              title="Eliminar respuesta">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2h4a2 2 0 0 1 2 2v2"/>
+                              </svg>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                      
+                      <!-- Contenido de la respuesta o formulario de edición -->
+                      @if (activeEditForm === reply.id) {
+                        <div class="edit-form">
+                          <form (ngSubmit)="onSubmitEdit(reply.id!)" #editReplyForm="ngForm">
+                            <div class="form-group">
+                              <textarea 
+                                [(ngModel)]="editText" 
+                                name="editText"
+                                placeholder="Edita tu respuesta..."
+                                rows="3"
+                                required
+                                maxlength="300"
+                                class="edit-textarea">
+                              </textarea>
+                              <div class="textarea-footer">
+                                <span class="char-count" [class.warning]="editText.length > 270">
+                                  {{ editText.length }}/300
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div class="edit-actions">
+                              <button 
+                                type="button" 
+                                class="btn btn-outline btn-sm"
+                                (click)="cancelEdit()">
+                                Cancelar
+                              </button>
+                              <button 
+                                type="submit" 
+                                class="btn btn-primary btn-sm"
+                                [disabled]="!editText.trim() || commentObject.comment.loading">
+                                @if (commentObject.comment.loading) {
+                                  <div class="loading-spinner-small"></div>
+                                  Guardando...
+                                } @else {
+                                  Guardar
+                                }
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      } @else {
+                        <div class="reply-content">
+                          <p>{{ reply.content }}</p>
+                        </div>
+                      }
+                      
+                      <div class="reply-footer">
+                        <div class="reply-stats">
+                          <!-- Botón de like para respuestas -->
+                          @if (authObject.logged) {
+                            <button 
+                              class="stat-btn like-btn small"
+                              [class.liked]="isReplyLiked"
+                              (click)="toggleLike(reply.id!)"
+                              [disabled]="commentObject.comment.loading">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                              </svg>
+                              <span>Me gusta</span>
+                              @if (replyLikesCount > 0) {
+                                <span class="like-count">{{ replyLikesCount }}</span>
+                              }
+                            </button>
+                          } @else {
+                            <span class="stat-display small">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                              </svg>
+                              <span>Me gusta</span>
+                              @if (replyLikesCount > 0) {
+                                <span class="like-count">{{ replyLikesCount }}</span>
+                              }
+                            </span>
+                          }
+
+                          <!-- Botón de editar para respuestas (solo para el propietario) -->
+                          @if (isReplyOwner && authObject.logged) {
+                            <button 
+                              class="stat-btn edit-btn small"
+                              (click)="toggleEditForm(reply.id!, reply.content)"
+                              [class.active]="activeEditForm === reply.id">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                              <span>Editar</span>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    </article>
+                  }
+                </div>
+              </div>
+            }
+          </article>
+        }
+      }
     </div>
-  </div>
+  }
 </section>

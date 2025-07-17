@@ -1,4 +1,6 @@
-<div class="site-container">
+@let authObject = authService.authState();
+
+<div class="site-container" (click)="onDocumentClick($event)">
   <header class="site-header">
     <div class="container">
       <div class="header-top">
@@ -11,73 +13,143 @@
         <!-- Botones de autenticación -->
         <div class="auth-buttons">
           <!-- Si NO está autenticado -->
-          <ng-container *ngIf="!(isAuthenticated$ | async); else loggedInTemplate">
+          @if (!authObject.logged) {
             <button class="btn btn-outline" routerLink="/sign-up">SignUp</button>
 
             <div class="login-dropdown">
-              <button class="btn btn-primary" (click)="toggleLoginForm()">LogIn</button>
+              <button 
+                class="btn btn-primary" 
+                (click)="toggleLoginForm(); $event.stopPropagation()"
+                type="button">
+                LogIn
+              </button>
 
               <!-- Formulario de login -->
-              <div class="login-form" *ngIf="showLoginForm">
-                <h3 class="login-title">Iniciar sesión</h3>
-                <form [formGroup]="form" (ngSubmit)="onSubmit()">
-                  <div class="login-fields">
-                    <div class="form-group">
-                      <label for="email">Email</label>
-                      <input id="email" type="email" formControlName="email" placeholder="tu@email.com">
-                      <div *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
-                        <small *ngIf="form.get('email')?.errors?.['required']">Email es obligatorio</small>
-                        <small *ngIf="form.get('email')?.errors?.['email']">Formato inválido</small>
-                      </div>
-                    </div>
-
-                    <div class="form-group">
-                      <label for="password">Contraseña</label>
-                      <input id="password" type="password" formControlName="password">
-                      <div *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
-                        <small>Contraseña es obligatoria</small>
-                      </div>
-                    </div>
-
-                    <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+              @if (showLoginForm()) {
+                <div class="login-form" (click)="$event.stopPropagation()">
+                  <div class="login-header">
+                    <h3 class="login-title">Iniciar sesión</h3>
+                    <button 
+                      type="button" 
+                      class="close-btn"
+                      (click)="closeLoginForm()"
+                      aria-label="Cerrar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
                   </div>
-                </form>
 
-                <div class="login-footer">
-                  <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+                    <div class="login-fields">
+                      <div class="form-group">
+                        <label for="email">Email</label>
+                        <input 
+                          id="email" 
+                          type="email" 
+                          formControlName="email" 
+                          placeholder="tu@email.com"
+                          [class.error]="form.get('email')?.touched && form.get('email')?.invalid">
+                        @if (form.get('email')?.touched && form.get('email')?.invalid) {
+                          <div class="error-messages">
+                            @if (form.get('email')?.errors?.['required']) {
+                              <small>Email es obligatorio</small>
+                            }
+                            @if (form.get('email')?.errors?.['email']) {
+                              <small>Formato de email inválido</small>
+                            }
+                          </div>
+                        }
+                      </div>
+
+                      <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <input 
+                          id="password" 
+                          type="password" 
+                          formControlName="password"
+                          placeholder="Tu contraseña"
+                          [class.error]="form.get('password')?.touched && form.get('password')?.invalid">
+                        @if (form.get('password')?.touched && form.get('password')?.invalid) {
+                          <div class="error-messages">
+                            @if (form.get('password')?.errors?.['required']) {
+                              <small>Contraseña es obligatoria</small>
+                            }
+                          </div>
+                        }
+                      </div>
+
+                      <button 
+                        class="btn btn-primary btn-block" 
+                        type="submit"
+                        [disabled]="authObject.loading"
+                        [class.loading]="authObject.loading">
+                        @if (!authObject.loading) {
+                          <span>Entrar</span>
+                        } @else {
+                          <span class="loading-text">
+                            <svg class="spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                            </svg>
+                            Entrando...
+                          </span>
+                        }
+                      </button>
+                    </div>
+                  </form>
+
+                  <!-- Mostrar errores del servicio solo si hay error y no es loading -->
+                  @if (authObject.error !== 'No token provided' && authObject.error && !authObject.loading) {
+                    <div class="login-error">
+                      <small class="error-text">{{ authObject.error }}</small>
+                    </div>
+                  }
+
+                  <div class="login-footer">
+                    <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                  </div>
                 </div>
-              </div>
+              }
             </div>
-          </ng-container>
-
-          <!-- Si está autenticado -->
-          <ng-template #loggedInTemplate>
-            <button type="button" class="btn btn-secondary" routerLink="/user" routerLinkActive="active">Mi perfil</button>
-            <button type="button" class="btn btn-outline" (click)="onLogout()">Log Out</button>
-          </ng-template>
+          } @else {
+            <!-- Si está autenticado -->
+            <div class="user-info">
+              <span class="welcome-text">Hola, {{ authObject.username }}</span>
+            </div>
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              routerLink="/user" 
+              routerLinkActive="active">
+              Mi perfil
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-outline" 
+              (click)="onLogout()"
+              [disabled]="authObject.loading">
+              @if (!authObject.loading) {
+                <span>Log Out</span>
+              } @else {
+                <span>Saliendo...</span>
+              }
+            </button>
+          }
         </div>
 
       </div>
 
       <!-- Navegación (componente separado) -->
-      <app-nav></app-nav>
+      <app-nav></app-nav>    
 
-      <!-- Botón de menú móvil -->
-      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" x2="20" y1="12" y2="12"></line>
-          <line x1="4" x2="20" y1="6" y2="6"></line>
-          <line x1="4" x2="20" y1="18" y2="18"></line>
-        </svg>
-        <span class="sr-only">Menú</span>
-      </button>
     </div>
   </header>
 
-  <!-- Contenido principal (router-outlet) -->
-  <router-outlet></router-outlet>
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
 
-  <!-- Pie de página -->
   <footer class="site-footer">
     <div class="container">
       <div class="footer-content">

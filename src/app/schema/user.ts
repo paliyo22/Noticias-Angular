@@ -1,4 +1,5 @@
-import { string, email, minLength, object, date, toMaxValue, optional, boolean, maxValue, enum_, uuid, pipe, InferInput, partial, safeParse, union } from "valibot";
+import { string, email, minLength, object, date, toMaxValue, optional, boolean, maxValue, 
+    enum_, uuid, pipe, InferInput, partial, safeParse, union } from "valibot";
 import { Role } from "../enum/role";
 
 const emailSchema = pipe(string(), email());

@@ -1,40 +1,243 @@
-<div class="user-profile-container" *ngIf="user">
-  <h2>Perfil de Usuario</h2>
+@let userObject = userService.userState();
 
-  <div *ngIf="!editMode">
-    <p><strong>Nombre:</strong> {{ user.name }}</p>
-    <p><strong>Apellido:</strong> {{ user.lastname }}</p>
-    <p><strong>Correo:</strong> {{ user.email }}</p>
-    <p><strong>Fecha de nacimiento:</strong> {{ user.birthday | date }}</p>
-    <p><strong>Suscripción:</strong> {{ user.subscription ? 'Sí' : 'No' }}</p>
-    <p><strong>Rol:</strong> {{ user.role }}</p>
-
-    <button (click)="toggleEditMode()">Editar datos</button>
+<div class="user-container">
+  <div class="user-header">
+    <h2>Mi Perfil</h2>
+    <div class="user-actions">
+      <div class="dropdown" [class.active]="dropdownOpen()">
+        <button class="dropdown-toggle" (click)="toggleDropdown()">
+          <span>Opciones</span>
+          <svg class="dropdown-icon" [class.rotated]="dropdownOpen()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6,9 12,15 18,9"></polyline>
+          </svg>
+        </button>
+        <div class="dropdown-menu" *ngIf="dropdownOpen()">
+          <button class="dropdown-item" (click)="enableEditMode()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Editar Perfil
+          </button>
+          <button class="dropdown-item" (click)="enablePasswordMode()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <circle cx="12" cy="16" r="1"></circle>
+              <path d="m7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            Cambiar Contraseña
+          </button>
+          <button class="dropdown-item danger" (click)="deleteAccount()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3,6 5,6 21,6"></polyline>
+              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+            </svg>
+            Eliminar Cuenta
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <form *ngIf="editMode" [formGroup]="userForm" (ngSubmit)="updateUser()">
-    <label>Nombre: <input formControlName="name"></label>
-    <label>Apellido: <input formControlName="lastname"></label>
-    <label>Correo: <input formControlName="email"></label>
-    <label>Fecha de nacimiento: <input type="date" formControlName="birthday"></label>
-    <label>Suscripción:
-      <input type="checkbox" formControlName="subscription">
-    </label>
+  <div class="user-content" *ngIf="userObject.user.data">
+    <!-- Información del usuario (modo lectura) -->
+    <div class="user-info" *ngIf="!editMode() && !passwordMode()">
+      <div class="info-card">
+        <div class="info-item">
+          <label>Nombre de usuario:</label>
+          <span>{{ userObject.user.data.username }}</span>
+        </div>
+        <div class="info-item">
+          <label>Email:</label>
+          <span>{{ userObject.user.data.email }}</span>
+        </div>
+        <div class="info-item">
+          <label>Nombre:</label>
+          <span>{{ userObject.user.data.name }}</span>
+        </div>
+        <div class="info-item">
+          <label>Apellido:</label>
+          <span>{{ userObject.user.data.lastname }}</span>
+        </div>
+        <div class="info-item" *ngIf="userObject.user.data.birthday">
+          <label>Fecha de nacimiento:</label>
+          <span>{{ userObject.user.data.birthday | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Suscripción:</label>
+          <span class="subscription-badge" [class.active]="userObject.user.data.subscription">
+            {{ userObject.user.data.subscription ? 'Activa' : 'Inactiva' }}
+          </span>
+        </div>
+        <div class="info-item" *ngIf="userObject.user.data.created">
+          <label>Fecha de registro:</label>
+          <span>{{ userObject.user.data.created | date:'dd/MM/yyyy' }}</span>
+        </div>
+      </div>
+    </div>
 
-    <button type="submit" [disabled]="userForm.invalid">Guardar</button>
-    <button type="button" (click)="toggleEditMode()">Cancelar</button>
-  </form>
+    <!-- Formulario de edición de perfil -->
+    <div class="edit-form" *ngIf="editMode()">
+      <form [formGroup]="userForm" (ngSubmit)="updateUser()">
+        <div class="form-group">
+          <label for="username">Nombre de usuario</label>
+          <input 
+            type="text" 
+            id="username" 
+            formControlName="username"
+            [class.error]="userForm.get('username')?.invalid && userForm.get('username')?.touched"
+          >
+          <div class="error-message" *ngIf="userForm.get('username')?.invalid && userForm.get('username')?.touched">
+            <span *ngIf="userForm.get('username')?.errors?.['required']">El nombre de usuario es requerido</span>
+            <span *ngIf="userForm.get('username')?.errors?.['minlength']">Mínimo 4 caracteres</span>
+          </div>
+        </div>
 
-  <hr />
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input 
+            type="email" 
+            id="email" 
+            formControlName="email"
+            [class.error]="userForm.get('email')?.invalid && userForm.get('email')?.touched"
+          >
+          <div class="error-message" *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+            <span *ngIf="userForm.get('email')?.errors?.['required']">El email es requerido</span>
+            <span *ngIf="userForm.get('email')?.errors?.['email']">Email inválido</span>
+          </div>
+        </div>
 
-  <h3>Cambiar contraseña</h3>
-  <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
-    <label>Contraseña actual:
-      <input type="password" formControlName="oldPass">
-    </label>
-    <label>Nueva contraseña:
-      <input type="password" formControlName="newPass">
-    </label>
-    <button type="submit" [disabled]="passwordForm.invalid">Actualizar contraseña</button>
-  </form>
+        <div class="form-group">
+          <label for="name">Nombre</label>
+          <input 
+            type="text" 
+            id="name" 
+            formControlName="name"
+            [class.error]="userForm.get('name')?.invalid && userForm.get('name')?.touched"
+          >
+          <div class="error-message" *ngIf="userForm.get('name')?.invalid && userForm.get('name')?.touched">
+            <span *ngIf="userForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lastname">Apellido</label>
+          <input 
+            type="text" 
+            id="lastname" 
+            formControlName="lastname"
+            [class.error]="userForm.get('lastname')?.invalid && userForm.get('lastname')?.touched"
+          >
+          <div class="error-message" *ngIf="userForm.get('lastname')?.invalid && userForm.get('lastname')?.touched">
+            <span *ngIf="userForm.get('lastname')?.errors?.['required']">El apellido es requerido</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="birthday">Fecha de nacimiento</label>
+          <input 
+            type="date" 
+            id="birthday" 
+            formControlName="birthday"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              formControlName="subscription"
+            >
+            <span class="checkmark"></span>
+            Suscripción activa
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelEdit()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="!isFormValid || isLoading()">
+            <span *ngIf="isLoading()">Guardando...</span>
+            <span *ngIf="!isLoading()">Guardar Cambios</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Error message for user update -->
+      <div class="error-alert" *ngIf="userObject.user.error">
+        {{ userObject.user.error }}
+      </div>
+    </div>
+
+    <!-- Formulario de cambio de contraseña -->
+    <div class="password-form" *ngIf="passwordMode()">
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+        <div class="form-group">
+          <label for="currentPassword">Contraseña actual</label>
+          <input 
+            type="password" 
+            id="currentPassword" 
+            formControlName="currentPassword"
+            [class.error]="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched"
+          >
+          <div class="error-message" *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched">
+            <span *ngIf="passwordForm.get('currentPassword')?.errors?.['required']">La contraseña actual es requerida</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="newPassword">Nueva contraseña</label>
+          <input 
+            type="password" 
+            id="newPassword" 
+            formControlName="newPassword"
+            [class.error]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"
+          >
+          <div class="error-message" *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched">
+            <span *ngIf="passwordForm.get('newPassword')?.errors?.['required']">La nueva contraseña es requerida</span>
+            <span *ngIf="passwordForm.get('newPassword')?.errors?.['minlength']">Mínimo 6 caracteres</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirmar nueva contraseña</label>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            formControlName="confirmPassword"
+            [class.error]="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched"
+          >
+          <div class="error-message" *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
+            <span *ngIf="passwordForm.get('confirmPassword')?.errors?.['required']">Confirma la nueva contraseña</span>
+            <span *ngIf="passwordForm.get('confirmPassword')?.errors?.['mismatch']">Las contraseñas no coinciden</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelPasswordChange()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="!isPasswordFormValid || authLoading()">
+            <span *ngIf="authLoading()">Cambiando...</span>
+            <span *ngIf="!authLoading()">Cambiar Contraseña</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Error message for password change -->
+      @let authState = authService.authState();
+      <div class="error-alert" *ngIf="authState.error">
+        {{ authState.error }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading" *ngIf="!userObject.user.data && userObject.user.loading">
+    <div class="spinner"></div>
+    <p>Cargando información del usuario...</p>
+  </div>
+
+  <!-- Error state -->
+  <div class="error-state" *ngIf="!userObject.user.data && !userObject.user.loading && userObject.user.error">
+    <p>{{ userObject.user.error }}</p>
+    <button class="btn-primary" (click)="loadUserData()">Reintentar</button>
+  </div>
 </div>

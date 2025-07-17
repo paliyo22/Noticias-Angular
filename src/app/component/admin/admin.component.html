@@ -1,44 +1,157 @@
-<div class="admin-container">
-  <h2>Panel de Administración</h2>
+@let userObject = userService.userState();
+@let newsObject = newsService.state();
 
-  <div class="admin-actions">
-    <h3>Acciones Críticas</h3>
+<div class="container">
+  <div class="admin-header">
+    <h1>Panel de Administración</h1>
+    <p class="admin-subtitle">Gestiona usuarios y noticias del sistema</p>
+  </div>
 
-    <!-- Contraseña necesaria para limpiar usuarios -->
-    <div class="form-group">
-      <label for="adminPassword">Contraseña de administrador</label>
-      <input
-        type="password"
-        id="adminPassword"
-        [(ngModel)]="adminPassword"
-        placeholder="Ingresa tu contraseña"
-      />
+  <!-- Sección de búsqueda de noticias -->
+  <section class="admin-section">
+    <h2>Buscar Noticia</h2>
+    <form class="search-form" (ngSubmit)="searchNews()" #searchForm="ngForm">
+      <div class="form-group">
+        <input 
+          type="text" 
+          [(ngModel)]="searchQuery" 
+          name="searchQuery"
+          placeholder="Ingresa términos de búsqueda..."
+          class="search-input"
+          required>
+        <button type="submit" class="btn btn-primary" [disabled]="!searchForm.valid">
+          Buscar
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Botones de acción principales -->
+  <section class="admin-actions">
+    <button class="btn btn-success" (click)="loadNews()" [disabled]="newsObject.news.loading">
+      {{ newsObject.news.loading ? 'Cargando...' : 'Cargar Noticias' }}
+    </button>
+    <button class="btn btn-warning" (click)="showCleanUsersForm()" [disabled]="userObject.result.loading">
+      {{ userObject.result.loading ? 'Limpiando...' : 'Limpiar Usuarios' }}
+    </button>
+    <button class="btn btn-danger" (click)="cleanNews()" [disabled]="newsObject.inactive.loading">
+      {{ newsObject.inactive.loading ? 'Limpiando...' : 'Limpiar Noticias' }}
+    </button>
+  </section>
+
+  <!-- Modal para confirmar limpieza de usuarios -->
+  @if (showPasswordForm) {
+    <div class="modal-overlay" (click)="hideCleanUsersForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Confirmar Limpieza de Usuarios</h3>
+          <button class="close-btn" (click)="hideCleanUsersForm()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="warning-text">
+            <strong>¡Atención!</strong> Esta acción eliminará todos los usuarios inactivos del sistema.
+            Esta operación no se puede deshacer.
+          </p>
+          <form class="password-form" (ngSubmit)="confirmCleanUsers()" #passwordForm="ngForm">
+            <div class="form-group">
+              <label for="adminPassword">Ingresa tu contraseña de administrador:</label>
+              <input 
+                type="password" 
+                id="adminPassword"
+                [(ngModel)]="adminPassword" 
+                name="adminPassword"
+                placeholder="Contraseña de administrador"
+                class="password-input"
+                required
+                minlength="6">
+              @if (passwordError) {
+                <div class="error-message">{{ passwordError }}</div>
+              }
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-secondary" (click)="hideCleanUsersForm()">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                class="btn btn-danger" 
+                [disabled]="!passwordForm.valid || userObject.result.loading">
+                {{ userObject.result.loading ? 'Procesando...' : 'Confirmar Limpieza' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
+  }
 
-    <button class="btn btn-danger" (click)="cleanUsers()">Limpiar Usuarios</button>
-    <button class="btn btn-danger" (click)="cleanNews()">Limpiar Noticias</button>
-  </div>
+  <!-- Sección de noticias inactivas -->
+  <section class="admin-section">
+    <h2>Noticias Inactivas</h2>
+    @if (newsObject.inactive.loading) {
+      <div class="loading">Cargando noticias inactivas...</div>
+    } @else if (newsObject.inactive.error) {
+      <div class="error">{{ newsObject.inactive.error }}</div>
+    } @else {
+      <div class="inactive-news-list">
+        @if (getInactiveNewsList().length === 0) {
+          <p class="empty-state">No hay noticias inactivas</p>
+        } @else {
+          @for (news of getInactiveNewsList(); track news.id) {
+            <div class="news-item">
+              <div class="news-content">
+                <h3 class="news-title">{{ news.title }}</h3>
+                <p class="news-meta">{{ news.publisher }} - {{ formatDate(news.timestamp) }}</p>
+              </div>
+              <button 
+                class="btn btn-outline-primary btn-sm" 
+                (click)="restoreNews(news.id)"
+                [disabled]="newsObject.inactive.loading">
+                Restaurar
+              </button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </section>
 
-  <div class="admin-options">
-    <h3>Opciones de Gestión</h3>
-    <ul class="admin-menu">
-      <li><a routerLink="/admin/ban-news">Ver Noticias Baneadas</a></li>
-      <li><a routerLink="/admin/users">Ver Usuarios</a></li>
-    </ul>
-  </div>
-
-  <div class="user-search">
-    <h3>Buscar Usuario</h3>
-    <input
-      type="text"
-      [(ngModel)]="searchQuery"
-      placeholder="Ingresar email o nombre..."
-    />
-    <button class="btn btn-primary" (click)="searchUser()">Buscar</button>
-  </div>
-
-  <div *ngIf="searchResult">
-    <h4>Resultado:</h4>
-    <pre>{{ searchResult | json }}</pre>
-  </div>
+  <!-- Sección de usuarios -->
+  <section class="admin-section">
+    <h2>Usuarios del Sistema</h2>
+    @if (userObject.allUsers.loading) {
+      <div class="loading">Cargando usuarios...</div>
+    } @else if (userObject.allUsers.error) {
+      <div class="error">{{ userObject.allUsers.error }}</div>
+    } @else {
+      <div class="users-list">
+        @if (userObject.allUsers.data.length === 0) {
+          <p class="empty-state">No hay usuarios registrados</p>
+        } @else {
+          @for (user of userObject.allUsers.data; track user.id) {
+            <div class="user-item">
+              <div class="user-info">
+                <div class="user-details">
+                  <h3 class="user-username">{{ user.username }}</h3>
+                  <p class="user-email">{{ user.email }}</p>
+                  <div class="user-meta">
+                    <span class="user-role">{{ user.role }}</span>
+                    <span class="user-status" [class.active]="user.is_active" [class.inactive]="!user.is_active">
+                      {{ user.is_active ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                class="btn btn-danger btn-sm" 
+                (click)="deleteUser(user.id!)"
+                [disabled]="userObject.result.loading">
+                Eliminar
+              </button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </section>
 </div>

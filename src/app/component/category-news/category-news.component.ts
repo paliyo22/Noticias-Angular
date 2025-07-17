@@ -1,117 +1,138 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import { BehaviorSubject, combineLatest, map, Observable, of, switchMap, withLatestFrom } from 'rxjs';
-import { NewsOutput } from '../../schema/news';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NewsService } from '../../service/news.service';
-import { Category } from '../../enum/category';
+import { Category, getCategoryNameFromValue } from '../../enum/category';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AuthService } from '../../service/auth.service';
+
 
 @Component({
   selector: 'app-category-news',
-  imports: [RouterModule, FormsModule, CommonModule],
+  imports: [RouterModule, CommonModule],
   templateUrl: './category-news.component.html',
-  styleUrl: './category-news.component.scss'
+  styleUrl: './category-news.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CategoryNewsComponent implements OnInit {
+export class CategoryNewsComponent {
+  
+  private router = inject(Router);
+  route = inject(ActivatedRoute);
+  newsService = inject(NewsService);
+  authService = inject(AuthService);
 
-  private route = inject(ActivatedRoute);
-  private newsService = inject(NewsService);
+  readonly pageSize = 9;
+  currentPageSignal = signal(1);
+  category = null as Category | null;
 
-  private currentPageSubject = new BehaviorSubject<number>(1);
-  currentPage$ = this.currentPageSubject.asObservable();
+  currentPage = computed(() => this.currentPageSignal());
+  totalPages = computed(() => Math.ceil(this.newsService.state().categoryNews.total / this.pageSize));
 
-  private categorySubject = new BehaviorSubject<Category | null>(null);
-  category$ = this.categorySubject.asObservable();
+  currentPageNews = computed(() => {
+    const page = this.currentPage();
+    const newsMap = this.newsService.state().categoryNews.data;
+    
+    return newsMap.get(page) || [];
+  });
 
-  totalPages: number = 1;
-  categoryName: string = ''; // 👈 nombre para mostrar
+  currentCategory = computed(() => {
+    return this.newsService.state().categoryNews.currentCategory;
+  });
 
-  ngOnInit() {
-    this.route.paramMap.subscribe(params => {
+  private paramSubscription = this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
       const categoryParam = params.get('category');
+
       if (categoryParam && Object.values(Category).includes(categoryParam as Category)) {
-        const cat = categoryParam as Category;
-        this.categorySubject.next(cat);
-        this.categoryName = this.getCategoryLabel(cat); // 👈 traducir a nombre legible
+        this.category = categoryParam as Category;
+        if (this.currentCategory() !== this.category) {
+          this.newsService.getCategory(this.category, this.pageSize, 0);
+        }        
       } else {
         console.error(`Categoría inválida: "${categoryParam}"`);
-        this.categorySubject.next(null);
+        this.router.navigate(["/error"]);
+        return;
       }
-    });
+  });
 
-    this.totalPages$.subscribe(tp => this.totalPages = tp);
+  private isPageLoaded(page: number): boolean {
+    return this.newsService.state().categoryNews.data.has(page)
   }
 
-  // ✅ Lógica para obtener noticias (12 por página)
-  newsResponse$: Observable<{ data: NewsOutput[]; total: number }> = combineLatest([
-    this.currentPage$,
-    this.category$
-  ]).pipe(
-    switchMap(([page, category]) => {
-      if (!category) return of({ data: [], total: 0 });
-      const limit = 12;
-      const offset = (page - 1) * limit;
-      return this.newsService.getCategory(category, limit, offset);
-    })
-  );
+  private loadPage(page: number): void {
+    if (!this.isPageLoaded(page)) {
+      const offset = (page - 1) * this.pageSize
+      this.newsService.getCategory(this.category!, this.pageSize, offset)
+    }
+  }
 
-  newsList$: Observable<NewsOutput[]> = this.newsResponse$.pipe(
-    map(res => res.data)
-  );
+  getCategoryName(category: string | null | undefined): string {
+    if (!category) {
+      return ""
+    }
 
-  totalPages$: Observable<number> = this.newsResponse$.pipe(
-    map(res => Math.ceil(res.total / 12))
-  );
+    let aux = getCategoryNameFromValue(category)
+    if (!aux) {
+      aux = ""
+    }
+    return aux
+  }
 
-  getVisiblePages(currentPage: number): (number | string)[] {
-    const pages: (number | string)[] = [];
-    const maxVisiblePages = 5;
-    if (this.totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= this.totalPages; i++) pages.push(i);
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      const nextPage = this.currentPage() + 1
+      this.currentPageSignal.set(nextPage)
+      this.loadPage(nextPage)
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) {
+      const prevPage = this.currentPage() - 1
+      this.currentPageSignal.set(prevPage)
+      this.loadPage(prevPage)
+    }
+  }
+
+  getVisiblePages(): (number | string)[] {
+    const current = this.currentPage()
+    const total = this.totalPages()
+    const pages: (number | string)[] = []
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i)
+      }
     } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push('...');
-        pages.push(this.totalPages);
-      } else if (currentPage >= this.totalPages - 2) {
-        pages.push(1, '...');
-        for (let i = this.totalPages - 3; i <= this.totalPages; i++) pages.push(i);
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i)
+        pages.push("...")
+        pages.push(total)
+      } else if (current >= total - 3) {
+        pages.push(1)
+        pages.push("...")
+        for (let i = total - 4; i <= total; i++) pages.push(i)
       } else {
-        pages.push(1, '...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-        pages.push('...', this.totalPages);
+        pages.push(1)
+        pages.push("...")
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+        pages.push("...")
+        pages.push(total)
       }
     }
-    return pages;
+
+    return pages
   }
 
-  goToPage(page: number | string): void {
-    if (typeof page === 'number') this.currentPageSubject.next(page);
-  }
-
-  goToPreviousPage(): void {
-    const current = this.currentPageSubject.value;
-    if (current > 1) this.currentPageSubject.next(current - 1);
-  }
-
-  goToNextPage(): void {
-    const current = this.currentPageSubject.value;
-    if (current < this.totalPages) this.currentPageSubject.next(current + 1);
-  }
-
-  // ✅ Traduce categoría al nombre legible
-  getCategoryLabel(cat: Category): string {
-    switch (cat) {
-      case Category.Entretenimiento: return 'Entretenimiento';
-      case Category.Internacional: return 'Internacional';
-      case Category.Empresarial: return 'Empresarial';
-      case Category.Salud: return 'Salud';
-      case Category.Deportes: return 'Deportes';
-      case Category.Ciencia: return 'Ciencia';
-      case Category.Tecnologia: return 'Tecnología';
-      default: return '';
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPageSignal.set(page)
+      this.loadPage(page)
     }
+  }
+
+  retry(): void {
+    const offset = (this.currentPage() - 1) * this.pageSize
+    this.newsService.getCategory(this.category!, this.pageSize, offset)
   }
 }
 

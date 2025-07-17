@@ -1,66 +1,137 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { tap, catchError, of } from 'rxjs';
-import { CommentOutput } from '../../schema/comment';
-import { NewsService } from '../../service/news.service';
-import { SessionService } from '../../service/session.service';
-import { UserService } from '../../service/user.service';
+import { CommonModule } from "@angular/common"
+import { ChangeDetectionStrategy, Component, computed, effect, inject, Input, type OnInit } from "@angular/core"
+import { FormsModule } from "@angular/forms"
+import { CommentService } from "../../service/comment.service"
+import { AuthService } from "../../service/auth.service"
 
 @Component({
-  selector: 'app-comment',
-  imports: [RouterModule, FormsModule, CommonModule],
-  templateUrl: './comment.component.html',
-  styleUrl: './comment.component.scss'
+  selector: "app-comment",
+  imports: [FormsModule, CommonModule],
+  templateUrl: "./comment.component.html",
+  styleUrl: "./comment.component.scss",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommentComponent implements OnInit {
-  private newsService = inject(NewsService);
-  private userService = inject(UserService);
-  private sessionService = inject(SessionService);
+  authService = inject(AuthService)
+  commentService = inject(CommentService)
 
-  @Input() newsId!: string;
+  @Input({ required: true }) newsId!: string
 
-  comments: CommentOutput[] = [];
-  newComment: string = '';
-  loggedIn: boolean = false;
+  newComment = ""
+  replyText = ""
+  editText = ""
+  activeReplyForm: string | null = null
+  activeEditForm: string | null = null
+  expandedReplies = new Set<string>()
+
+  commentState = computed(() => this.commentService.commentState())
+  authState = computed(() => this.authService.authState())
+
+  isLoggedIn = computed(() => this.authState().logged)
+  currentUsername = computed(() => this.authState().username)
 
   ngOnInit(): void {
-    this.loadComments();
-
-    this.sessionService.isLoggedIn().subscribe(isLogged => {
-      this.loggedIn = isLogged;
-    });
+    this.commentService.getComments(this.newsId) 
   }
 
-  loadComments(): void {
-    if (!this.newsId) return;
+  onSubmitComment(): void {
+    if (!this.newComment.trim() || !this.isLoggedIn()) return
 
-    this.newsService.getNewsComments(this.newsId).pipe(
-      tap(comments => this.comments = comments),
-      catchError(err => {
-        console.error('Error cargando comentarios:', err);
-        return of([]);
-      })
-    ).subscribe();
+    this.commentService.addComment(this.newsId, this.newComment.trim())
+    this.newComment = ""
   }
 
-  onSubmit(): void {
-  if (!this.loggedIn || !this.newComment.trim()) return;
+  onSubmitReply(parentCommentId: string): void {
+    if (!this.replyText.trim() || !this.isLoggedIn()) return
 
-  this.userService.addComment(this.newsId, this.newComment, '').pipe(
-    tap((comment) => {
-      this.comments.unshift(comment); // O puedes quitar esta línea si quieres solo reload
-      this.newComment = '';
-      
-      // Recargar comentarios desde backend
-      this.loadComments();
-    }),
-    catchError(err => {
-      console.error('Error al publicar comentario:', err);
-      return of(null);
-    })
-  ).subscribe();
-}
+    this.commentService.addComment(this.newsId, this.replyText.trim(), parentCommentId)
+    this.replyText = ""
+    this.activeReplyForm = null
+  }
 
+  onSubmitEdit(commentId: string): void {
+    if (!this.editText.trim() || !this.isLoggedIn()) return
+
+    this.commentService.updateComment(this.newsId, commentId, this.editText.trim())
+    this.editText = ""
+    this.activeEditForm = null
+  }
+
+  toggleLike(commentId: string): void {
+    if (!this.isLoggedIn()) return
+
+    if (this.isLikedByCurrentUser(commentId)) {
+      this.commentService.deleteLikes(commentId)
+    } else {
+      this.commentService.addLike(commentId)
+    }
+  }
+
+  isLikedByCurrentUser(commentId: string): boolean {
+    const currentUsername = this.currentUsername()
+    const commentLikes = this.commentState().comment.likes.get(commentId) || []
+    return currentUsername ? commentLikes.includes(currentUsername) : false
+  }
+
+  getLikesCount(commentId: string): number {
+    const commentLikes = this.commentState().comment.likes.get(commentId) || []
+    return commentLikes.length
+  }
+
+  isCommentOwner(commentUsername: string): boolean {
+    return this.isLoggedIn() && commentUsername === this.currentUsername()
+  }
+
+  deleteComment(commentId: string, username: string): void {
+    if (!this.isLoggedIn() || username !== this.currentUsername()) return
+
+    this.commentService.deleteComment(this.newsId, commentId)
+  }
+
+  clearComment(): void {
+    this.newComment = ""
+  }
+
+  toggleReplyForm(commentId: string): void {
+    this.activeReplyForm = this.activeReplyForm === commentId ? null : commentId
+    this.replyText = ""
+    this.activeEditForm = null
+  }
+
+  toggleEditForm(commentId: string, currentContent: string): void {
+    this.activeEditForm = this.activeEditForm === commentId ? null : commentId
+    this.editText = currentContent
+    this.activeReplyForm = null
+  }
+
+  cancelReply(): void {
+    this.activeReplyForm = null
+    this.replyText = ""
+  }
+
+  cancelEdit(): void {
+    this.activeEditForm = null
+    this.editText = ""
+  }
+
+  toggleReplies(commentId: string): void {
+    if (this.expandedReplies.has(commentId)) {
+      this.expandedReplies.delete(commentId)
+    } else {
+      this.expandedReplies.add(commentId)
+      const commentData = this.commentState().comment.data.get(commentId)
+      if (commentData && commentData.replies.length === 0 && commentData.comment.replies > 0) {
+        this.commentService.getReplies(commentId)
+      }
+    }
+  }
+
+  retry(): void {
+    if (this.newsId) {
+      this.commentService.getComments(this.newsId)
+      if (this.isLoggedIn()) {
+        this.commentService.getLikes()
+      }
+    }
+  }
 }

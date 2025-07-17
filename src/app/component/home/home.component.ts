@@ -1,12 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FeaturedNewsComponent } from '../featured-news/featured-news.component';
+import { getCategoryNameFromValue } from '../../enum/category';
 import { RouterModule } from '@angular/router';
 import { NewsService } from '../../service/news.service';
-import { BehaviorSubject, combineLatest, map, Observable, switchMap, withLatestFrom } from 'rxjs';
-import { NewsOutput } from '../../schema/news';
-import { getCategoryNameFromValue } from '../../enum/category';
-
 
 @Component({
   selector: 'app-home',
@@ -15,115 +12,112 @@ import { getCategoryNameFromValue } from '../../enum/category';
     FeaturedNewsComponent
   ],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.scss'
+  styleUrl: './home.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush         
 })
 
 export class HomeComponent implements OnInit {
   newsService = inject(NewsService);
+  readonly pageSize = 9;
+  currentPageSignal = signal(1);
 
-  private currentPageSubject = new BehaviorSubject<number>(1);
-  currentPage$ = this.currentPageSubject.asObservable();
-  limit = 10;
+  currentPage = computed(() => this.currentPageSignal());
+  totalPages = computed(() => Math.ceil(this.newsService.state().news.total / this.pageSize));
 
-  // Traemos toda la respuesta (con likes incluidos)
-  newsResponse$: Observable<{ data: NewsOutput[]; total: number }> = this.currentPage$.pipe(
-    switchMap(page => {
-      const limit = page === 1 ? 10 : 9;
-      const offset = (page - 1) * limit;
-      return this.newsService.getNews(limit, offset);
-    })
-  );
+  currentPageNews = computed(() => {
+    const page = this.currentPage();
+    const newsMap = this.newsService.state().news.data;
+    
+    return newsMap.get(page) || [];
+  })
 
-
-  // Lista completa de noticias de la página actual
-  newsList$: Observable<NewsOutput[]> = this.newsResponse$.pipe(
-    map(res => res.data)
-  );
-
-  // NOTICIA DESTACADA: para la página 1, la noticia con más likes, para otras páginas null
-  mainStory$: Observable<NewsOutput | null> = this.newsList$.pipe(
-    withLatestFrom(this.currentPage$),
-    map(([newsList, currentPage]) => {
-      if (currentPage !== 1 || newsList.length === 0) {
-        return null;
-      }
-      // Encontrar noticia con más likes
-      return newsList.reduce((max, item) => (item.likes > max.likes ? item : max), newsList[0]);
-    })
-  );
-
-  // Noticias paginadas, excluyendo la noticia destacada solo en la página 1
-  paginatedNews$: Observable<NewsOutput[]> = combineLatest([this.newsList$, this.mainStory$, this.currentPage$]).pipe(
-    map(([newsList, mainStory, currentPage]) => {
-      if (currentPage === 1 && mainStory) {
-        // Excluir la noticia destacada
-        return newsList.filter(news => news.id !== mainStory.id);
-      }
-      return newsList;
-    })
-  );
-
-  totalPages$: Observable<number> = this.currentPage$.pipe(
-    switchMap(page => {
-      const limit = page === 1 ? 10 : 9;
-      return this.newsResponse$.pipe(
-        map(res => Math.ceil(res.total / limit))
-      );
-    })
-  );
-
-  totalPages: number = 1;
-
-  ngOnInit() {
-    this.totalPages$.subscribe(tp => this.totalPages = tp);
+  ngOnInit(): void {
+    this.currentPageSignal.set(1);
+    if(this.newsService.state().news.data.size === 0){
+      this.newsService.getNews(this.pageSize, 0);
+    }
   }
 
-  getVisiblePages(currentPage: number): (number | string)[] {
-    const pages: (number | string)[] = [];
-    const maxVisiblePages = 5;
+  private isPageLoaded(page: number): boolean {
+    return this.newsService.state().news.data.has(page);
+  }
+ 
+  private loadPage(page: number): void {
+    if (!this.isPageLoaded(page)) {
+      const offset = (page - 1) * this.pageSize
+      this.newsService.getNews(this.pageSize, offset)
+    }
+  }
 
-    if (this.totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= this.totalPages; i++) {
+  getCategory(category: string | undefined): string {
+    if(!category){
+      return '';
+    }
+    
+    let aux = getCategoryNameFromValue(category);
+    if(!aux){
+      aux = '';
+    }
+    return aux;
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      const nextPage = this.currentPage() + 1
+      this.currentPageSignal.set(nextPage)
+      this.loadPage(nextPage)
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) {
+      const prevPage = this.currentPage() - 1
+      this.currentPageSignal.set(prevPage)
+      this.loadPage(prevPage)
+    }
+  }
+
+  getVisiblePages(): (number | string)[] {
+    const current = this.currentPage();
+    const total = this.totalPages();
+    const pages: (number | string)[] = [];
+    
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) {
         pages.push(i);
       }
     } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
         pages.push('...');
-        pages.push(this.totalPages);
-      } else if (currentPage >= this.totalPages - 2) {
+        pages.push(total);
+      } else if (current >= total - 3) {
         pages.push(1);
         pages.push('...');
-        for (let i = this.totalPages - 3; i <= this.totalPages; i++) pages.push(i);
+        for (let i = total - 4; i <= total; i++) pages.push(i);
       } else {
         pages.push(1);
         pages.push('...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
         pages.push('...');
-        pages.push(this.totalPages);
+        pages.push(total);
       }
     }
+    
     return pages;
   }
 
-  goToPage(page: number | string): void {
-    if (typeof page === 'number') {
-      this.currentPageSubject.next(page);
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPageSignal.set(page);
+      this.loadPage(page);
     }
   }
 
-  goToPreviousPage(): void {
-    const current = this.currentPageSubject.value;
-    if (current > 1) this.currentPageSubject.next(current - 1);
-  }
-
-  goToNextPage(): void {
-    const current = this.currentPageSubject.value;
-    if (current < this.totalPages) this.currentPageSubject.next(current + 1);
-  }
-
-  getCategoryName(categoryValue: string | undefined): string | undefined {
-    if (!categoryValue) return undefined;
-    return getCategoryNameFromValue(categoryValue);
-  }
+  // Reintentar en caso de error
+  retry(): void {
+    const offset = (this.currentPage() - 1) * this.pageSize
+    this.newsService.getNews(this.pageSize, offset)
+  } 
+  
 }

@@ -1,14 +1,49 @@
-<div class="most-read">
-  <div class="card">
-    <h2 class="section-title">Lo más leído</h2>
-    <div class="most-read-list">
-      <div class="most-read-item" *ngFor="let item of news; let i = index">
-        <div class="item-number">{{ i + 1 }}</div>
-        <div class="item-content">
-          <a [routerLink]="['/news', item.id]" class="item-title">{{ item.title }}</a>
-          <p class="item-time">{{ item.timestamp | date: 'dd/MM/yyyy HH:mm' }}</p>
+@let newsObject = newsService.state();
+@if (newsObject.featured.data.length > 0) {
+  <section class="featured-section">
+    <div class="container">
+      <div class="featured-grid">
+        <!-- Noticia principal destacada -->
+        <div class="main-story">
+          @let mainStory = newsObject.featured.data[0];
+          <a [routerLink]="['/news', mainStory.id]" class="story-link">
+            <div class="story-image">
+              <img [src]="mainStory.image_url || '/image.png'" [alt]="mainStory.title">
+              <div class="image-overlay"></div>
+              <div class="story-content">
+                <span class="badge badge-urgent">Última hora</span>
+                <h1 class="story-title">{{ mainStory.title }}</h1>
+                <p class="story-excerpt">{{ mainStory.snippet }}</p>
+                <div class="story-meta">
+                  <span>{{ mainStory.timestamp | date: 'dd/MM/yyyy' }}</span>
+                  <span class="separator">·</span>
+                  <span>{{ mainStory.publisher }}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+        
+        <!-- Sidebar de noticias destacadas -->
+        <div class="featured-sidebar">
+          <div class="most-read">
+            <div class="card">
+              <h2 class="section-title">Lo más leído</h2>
+              <div class="most-read-list">
+                @for (item of newsObject.featured.data.slice(1); track item.id; let i = $index) {
+                  <div class="most-read-item">
+                    <div class="item-number">{{ i + 1 }}</div>
+                    <div class="item-content">
+                      <a [routerLink]="['/news', item.id]" class="item-title">{{ item.title }}</a>
+                      <p class="item-time">{{ item.timestamp | date: 'dd/MM/yyyy HH:mm' }}</p>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+}

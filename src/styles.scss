@@ -14,6 +14,16 @@
   --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   --container-width: 1200px;
   --weather-icon-color: #f59e0b;
+
+  /* Nuevas variables para comentarios */
+  --comment-bg: #ffffff;
+  --comment-border: #e5e7eb;
+  --comment-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --reply-bg: #f9fafb;
+  --like-color: #ef4444;
+  --like-bg: #fef2f2;
+  --edit-bg: #f0f9ff;
+  --edit-border: #0ea5e9;
 }
 
 /* Reset */
@@ -55,6 +65,15 @@ ul {
   padding: 0 1rem;
 }
 
+/* Estilos adicionales para formularios */
+textarea {
+  font-family: var(--font-family);
+}
+
+button {
+  font-family: var(--font-family);
+}
+
 /* Utilidades */
 .sr-only {
   position: absolute;
@@ -66,4 +85,21 @@ ul {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Utilidades adicionales */
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
 }

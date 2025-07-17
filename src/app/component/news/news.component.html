@@ -1,59 +1,174 @@
-<main class="news-detail" *ngIf="newsData$ | async as data">
+@let newsObject = newsService.state().singleNews;
+@let userObject = userService.userState();
+@let authObject = authService.authState();
+
+<main class="news-detail">
   <div class="container">
-    <!-- Main Article -->
-    <article class="article">
-      <header class="article-header">
-        <h1 class="article-title">{{ data.news.title }}</h1>
-        <div class="article-meta">
-          <div class="meta-left">
-            <a class="category-tag" [routerLink]="['/category', data.news.category?.toLowerCase()]">
-              {{ data.news.category }}
-            </a>
-            <span class="publish-date">{{ data.news.timestamp | date: 'dd MMM yyyy, HH:mm' }}</span>
-            <span class="publisher">Publicado por {{ data.news.publisher }}</span>
-          </div>
-          <div class="meta-right">
-            <button class="like-btn" (click)="toggleLike()">
-              {{ userLiked ? '💔' : '❤️' }} {{ localLikes }}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <figure class="article-image">
-        <img [src]="data.news.image_url || '/image.png'" [alt]="data.news.title">
-      </figure>
-
-      <div class="article-content">
-        <p class="article-snippet">{{ data.news.snippet }}</p>
-        <button class="btn-view-more" (click)="openNewsUrl(data.news.newsUrl)">
-          Ver más
+    @if (newsObject.loading) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Cargando noticia...</p>
+      </div>
+    } @else if (newsObject.error) {
+      <div class="error-state">
+        <div class="error-icon">⚠️</div>
+        <h2>Error al cargar la noticia</h2>
+        <p>{{ newsObject.error }}</p>
+        <button class="btn btn-primary" (click)="retry()">
+          Reintentar
         </button>
       </div>
-    </article>
+    } @else if (newsObject.data) {
+      @let news = newsObject.data;
+      
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb" aria-label="Navegación">
+        <a routerLink="/">Inicio</a>
+        <span class="separator">›</span>
+        @if (news.category) {
+          <a [routerLink]="['/category', news.category.toLowerCase()]">
+            {{ getCategory(news.category) }}
+          </a>
+          <span class="separator">›</span>
+        }
+        <span class="current">{{ news.title }}</span>
+      </nav>
 
-    <app-comment [newsId]="data.news.id"></app-comment>
-
-    <!-- Related News -->
-    <section class="related-news" *ngIf="data.subNews?.length">
-      <h2 class="section-title">Noticias relacionadas</h2>
-      <div class="news-grid four-columns">
-        <article class="news-card" *ngFor="let news of data.subNews">
-          <div class="card-image">
-            <img [src]="news.image_url || '/image.png'" [alt]="news.title">
+      <!-- Artículo principal -->
+      <article class="article">
+        <header class="article-header">
+          <div class="article-meta-top">
+            @if (news.category) {
+              <a class="category-tag" [routerLink]="['/category', news.category.toLowerCase()]">
+                {{ getCategory(news.category) }}
+              </a>
+            }
+            <time class="publish-date" [dateTime]="news.timestamp">
+              {{ news.timestamp | date: 'dd MMMM yyyy, HH:mm' }}
+            </time>
           </div>
-          <div class="card-content">
-            <h3 class="card-title">
-              <a [routerLink]="['/news', news.id]">{{ news.title }}</a>
-            </h3>
-            <p class="card-excerpt">{{ news.snippet }}</p>
-            <div class="card-meta">
-              <span>{{ news.timestamp | date: 'dd/MM/yyyy' }}</span>
-              <span>{{ news.publisher }}</span>
+          
+          <h1 class="article-title">{{ news.title }}</h1>
+          
+          <div class="article-meta-bottom">
+            <div class="publisher-info">
+              <span class="publisher-label">Publicado por</span>
+              <span class="publisher-name">{{ news.publisher }}</span>
+            </div>
+            
+            <div class="article-actions">
+              @if (authObject.logged) {
+                <button 
+                  class="like-btn"
+                  [class.liked]="userObject.result.state"
+                  (click)="toggleLike()"
+                  [disabled]="userObject.user.loading"
+                  aria-label="Me gusta">
+                  <span class="like-icon">{{ userObject.result.state ? '❤️' : '🤍' }}</span>
+                  <span class="like-text">{{ userObject.result.state ? 'Te gusta' : 'Me gusta' }}</span>
+                  @if (userObject.result.state !== undefined) {
+                    <span class="like-count">{{ newsObject.data.likes }}</span>
+                  }
+                </button>
+              } @else {
+                <div class="login-prompt">
+                  <span class="login-text">
+                    <a routerLink="/login" class="login-link">Inicia sesión</a> 
+                    para dar me gusta
+                  </span>
+                </div>
+              }
+              
+              <button 
+                class="share-btn" 
+                (click)="shareArticle()" 
+                type="button"
+                aria-label="Compartir artículo">
+                <span class="share-icon">📤</span>
+                <span class="share-text">Compartir</span>
+              </button>
             </div>
           </div>
-        </article>
+        </header>
+
+        <figure class="article-image">
+          <img 
+            [src]="news.image_url || '/image.png'" 
+            [alt]="news.title"
+            loading="lazy">
+        </figure>
+
+        <div class="article-content">
+          <div class="article-snippet">
+            <p>{{ news.snippet }}</p>
+          </div>
+          
+          @if (news.newsUrl) {
+            <div class="read-more-section">
+              <button 
+                class="btn-read-more" 
+                type="button"
+                (click)="openNewsUrl($event, news.newsUrl)"
+                aria-label="Leer artículo completo en fuente original">
+                <span class="btn-text">Ver más</span>
+                <span class="btn-icon">→</span>
+              </button>
+              <p class="source-note">
+                Continúa leyendo en <strong>{{ news.publisher }}</strong>
+              </p>
+            </div>
+          }
+        </div>
+      </article>
+
+      <!-- Componente de comentarios -->
+      <app-comment [newsId]="news.id"></app-comment>
+
+      <!-- Noticias relacionadas o destacadas -->
+      @if (newsObject.subData && newsObject.subData.length > 0) {
+        <section class="related-news">
+          <h2 class="section-title">Noticias relacionadas</h2>
+          <div class="related-grid">
+            @for (relatedNews of newsObject.subData; track relatedNews.id) {
+              <article class="related-card">
+                <a [routerLink]="['/news', relatedNews.id]" class="card-link">
+                  <div class="card-image">
+                    <img 
+                      [src]="relatedNews.image_url || '/image.png'" 
+                      [alt]="relatedNews.title"
+                      loading="lazy">
+                  </div>
+                  <div class="card-content">
+                    @if (relatedNews.category) {
+                      <span class="card-category">{{ getCategory(relatedNews.category) }}</span>
+                    }
+                    <h3 class="card-title">{{ relatedNews.title }}</h3>
+                    <p class="card-excerpt">{{ relatedNews.snippet }}</p>
+                    <div class="card-meta">
+                      <time [dateTime]="relatedNews.timestamp">
+                        {{ relatedNews.timestamp | date: 'dd/MM/yyyy' }}
+                      </time>
+                      <span class="card-publisher">{{ relatedNews.publisher }}</span>
+                    </div>
+                  </div>
+                </a>
+              </article>
+            }
+          </div>
+        </section>
+      } @else {
+        <!-- Si no hay noticias relacionadas, mostrar noticias destacadas -->
+        <section class="featured-fallback">
+          <h2 class="section-title">Noticias destacadas</h2>
+          <app-featured-news/>
+        </section>
+      }
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon">📰</div>
+        <h2>Noticia no encontrada</h2>
+        <p>La noticia que buscas no existe o ha sido eliminada.</p>
       </div>
-    </section>
+    }
   </div>
 </main>
