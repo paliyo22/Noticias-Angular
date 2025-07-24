@@ -1,6 +1,6 @@
-<nav class="main-nav">
-  <ul>
-    <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a></li>
+<nav class="navbar">  
+  <ul class="navbar-menu">
+  <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a></li>
     <li><a routerLink="/category/world" routerLinkActive="active">Internacional</a></li>
     <li><a routerLink="/category/business" routerLinkActive="active">Empresarial</a></li>
     <li><a routerLink="/category/sport" routerLinkActive="active">Deportes</a></li>
@@ -9,4 +9,19 @@
     <li><a routerLink="/category/science" routerLinkActive="active">Ciencia</a></li>
     <li><a routerLink="/category/health" routerLinkActive="active">Salud</a></li>
   </ul>
+  
+  <div class="search-container">
+    <form (ngSubmit)="submitSearch()" class="search-form">
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        name="searchQuery" 
+        placeholder="Buscar noticias..." 
+        class="search-input"
+        required>
+      <button type="submit" class="search-button" [disabled]="!searchQuery.trim()">
+        <span class="search-icon">🔍</span>
+      </button>
+    </form>
+  </div>
 </nav>

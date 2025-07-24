@@ -1,0 +1,74 @@
+@let newsObject = newsService.state();
+
+<div class="search-page">
+  <div class="container">
+    <div class="search-header">
+      <h1>Resultados de búsqueda</h1>
+      <p class="search-query">Mostrando resultados para: <strong>"{{ searchQuery }}"</strong></p>
+    
+    <!-- Resultados de búsqueda -->
+    <div class="search-results">
+      @if (newsObject.search.loading) {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Buscando noticias...</p>
+        </div>
+      } @else if (newsObject.search.error) {
+        <div class="error-state">
+          <div class="error-icon">⚠️</div>
+          <h2>Error en la búsqueda</h2>
+          <p>{{ newsObject.search.error }}</p>
+          <button class="btn btn-primary" (click)="performSearch(searchQuery)">
+            Reintentar
+          </button>
+        </div>
+      } @else if (newsObject.search.data) {
+        @if (newsObject.search.data.length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <h2>No se encontraron resultados</h2>
+            <p>No hay noticias que coincidan con tu búsqueda. Intenta con otros términos.</p>
+          </div>
+        } @else {
+          <div class="results-count">
+            <p>{{ newsObject.search.data.length }} resultado(s) encontrado(s)</p>
+          </div>
+          
+          <div class="results-grid">
+            @for (news of newsObject.search.data; track news.id) {
+              <article class="news-card">
+                <a [routerLink]="['/news', news.id]" class="card-link">
+                  <div class="card-image">
+                    <img 
+                      [src]="news.image_url || '/image.png'" 
+                      [alt]="news.title"
+                      loading="lazy">
+                    @if (news.category) {
+                      <span class="category-tag">{{ news.category }}</span>
+                    }
+                  </div>
+                  <div class="card-content">
+                    <h3 class="card-title">{{ news.title }}</h3>
+                    <p class="card-excerpt">{{ news.snippet }}</p>
+                    <div class="card-meta">
+                      <span class="card-publisher">{{ news.publisher }}</span>
+                      <time [dateTime]="news.timestamp">
+                        {{ news.timestamp | date: 'dd/MM/yyyy' }}
+                      </time>
+                    </div>
+                  </div>
+                </a>
+              </article>
+            }
+          </div>
+        }
+      } @else {
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h2>Realiza una búsqueda</h2>
+          <p>Ingresa términos de búsqueda para encontrar noticias.</p>
+        </div>
+      }
+    </div>
+  </div>
+</div>

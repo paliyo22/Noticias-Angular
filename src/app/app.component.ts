@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterModule, RouterOutlet } from '@angular/router';
 import { NavComponent } from "./component/nav/nav.component";
 import { WeatherComponent } from './component/weather/weather.component';
@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from './service/auth.service';
 import { AuthInput } from './schema/user';
+import { Role } from './enum/role';
 
 
 
@@ -20,12 +21,17 @@ import { AuthInput } from './schema/user';
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush   
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
   authService = inject(AuthService)
   private fb = inject(FormBuilder)
   private router = inject(Router)
 
   showLoginForm = signal(false)
+  Role = Role;
+
+  private isCurrentRoute(route: string): boolean {
+    return this.router.url === route || this.router.url.startsWith(route + "?")
+  }
 
   form: FormGroup = this.fb.group({
     email: ["", [Validators.required, Validators.email]],
@@ -34,10 +40,6 @@ export class AppComponent implements OnInit {
 
   get currentYear(): number {
     return new Date().getFullYear()
-  }
-
-  ngOnInit() {
-    this.authService.refresh();
   }
 
   toggleLoginForm() {
@@ -53,6 +55,9 @@ export class AppComponent implements OnInit {
       const aux: AuthInput = this.form.value
       this.authService.logIn(aux)
       this.closeLoginForm()
+    }
+    if (this.isCurrentRoute("/sign-up")) {
+      this.router.navigate(["/"])
     }
   }
 

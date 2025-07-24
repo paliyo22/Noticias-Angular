@@ -1,9 +1,26 @@
+@let weatherObject = weatherService.weatherState();
 <div class="weather-widget">
-  <div class="weather-info">
-    <p class="weather-location">{{ location }}</p>
-    <div class="weather-temp">
-      <span class="temp">{{ temperature }}°C</span>
-      <span class="condition">{{ condition }}</span>
+  @if (weatherObject.loading) {
+    <div class="weather-loading">
+      <span>Cargando clima...</span>
     </div>
-  </div>
+  } @else if (weatherObject.error) {
+    <div class="weather-error">
+      <span>{{ weatherObject.error }}</span>
+      <button (click)="reload()" class="reload-btn">Reintentar</button>
+    </div>
+  } @else if (weatherObject.data) {
+    <div class="weather-info">
+      <p class="weather-location">{{ weatherObject.data!.name }}</p>
+      <div class="weather-temp">
+        <span class="temp">{{ (weatherObject.data!.main.temp - 273.15) | number:'1.0-0' }}°C</span>
+        <span class="condition">{{ weatherObject.data!.weather[0].description }}</span>
+      </div>
+    </div>
+  } @else {
+    <div class="weather-placeholder">
+      <span>No hay datos del clima disponibles</span>
+      <button (click)="reload()" class="reload-btn">Cargar</button>
+    </div>
+  }
 </div>

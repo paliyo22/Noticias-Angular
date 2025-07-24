@@ -10,7 +10,7 @@ import { AuthService } from './auth.service';
 })
 export class UserService {
   
-  private apiUrl = 'http://localhost:1234';
+  private apiUrl = 'https://server-news-project.onrender.com';
   private http = inject(HttpClient);
   private authService = inject(AuthService);
 
@@ -200,7 +200,7 @@ export class UserService {
     ).subscribe();
   }
 
-  delete(): void {
+  delete(id?: string): void {
     
     this.userState.update(state => ({
       ...state,
@@ -212,7 +212,7 @@ export class UserService {
     }));
     
     withAuthRetry<void>(() =>
-      this.http.post<void>(`${this.apiUrl}/user/delete`, {}, {withCredentials: true}),
+      this.http.post<void>(`${this.apiUrl}/user/delete`, {id}, {withCredentials: true}),
       this.authService
     ).pipe(
       tap({
@@ -225,6 +225,7 @@ export class UserService {
               error: null
             }
           }));
+          this.getAll();
         }
       }),
       catchError((error) => {
@@ -240,7 +241,7 @@ export class UserService {
       })
     ).subscribe();
   }
-
+  // ------ se pueden implementar effects en los componentes para que los ressult tengan impacto en el programa---
   clean(password: string): void { 
 
     this.userState.update(state => ({
@@ -267,6 +268,7 @@ export class UserService {
               error: null
             }
           }));
+          this.getAll();
         }
       }),
       catchError((error) => {

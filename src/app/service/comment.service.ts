@@ -10,7 +10,7 @@ import { AuthService } from './auth.service';
 })
 export class CommentService {
 
-  private apiUrl = 'http://localhost:1234';
+  private apiUrl = 'https://server-news-project.onrender.com';
   private http = inject(HttpClient);
   private authService = inject(AuthService);
 

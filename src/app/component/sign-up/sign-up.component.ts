@@ -1,8 +1,7 @@
 import { CommonModule } from "@angular/common"
-import { ChangeDetectionStrategy, Component, computed, effect, inject, type OnInit } from "@angular/core"
+import { ChangeDetectionStrategy, Component, computed, inject, type OnInit } from "@angular/core"
 import { FormBuilder, type FormGroup, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms"
 import { AuthService } from "../../service/auth.service"
-import { Router } from "@angular/router"
 import { Role } from "../../enum/role"
 import { type UserInput, validateImputUser } from "../../schema/user"
 
@@ -16,15 +15,8 @@ import { type UserInput, validateImputUser } from "../../schema/user"
 export class SignUpComponent implements OnInit {
   authService = inject(AuthService);
   private fb = inject(FormBuilder);
-  private router = inject(Router);
 
   currentError = computed(() => this.authService.authState().error);
-  
-  private effectRedirectIfLogged = effect(() => {
-    if (this.authService.authState().logged) {
-      this.router.navigate(['/']);
-    }
-  });
   
   maxDate = new Date().toISOString().split("T")[0]
 

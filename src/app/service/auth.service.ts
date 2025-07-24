@@ -10,7 +10,7 @@ import { withAuthRetry } from '../helper/http-helper';
 })
 export class AuthService {
   
-  private apiUrl = 'http://localhost:1234';
+  private apiUrl = 'https://server-news-project.onrender.com';
   private http = inject(HttpClient);
 
   authState = signal({
@@ -20,6 +20,16 @@ export class AuthService {
     loading: false,
     error: null as string | null
   });
+
+  setState(): void {
+    this.authState.update(() => ({
+      logged: false,
+      username: null,
+      role: null,
+      loading: false,
+      error: null
+    }));
+  }
   
   register(body: UserInput): void {
     

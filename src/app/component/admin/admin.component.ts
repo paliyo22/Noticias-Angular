@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core"
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from "@angular/core"
 import { UserService } from "../../service/user.service"
 import { CommonModule } from "@angular/common"
 import { FormsModule } from "@angular/forms"
 import { AuthService } from "../../service/auth.service"
 import { NewsService } from "../../service/news.service"
 import type { NewsOutput } from "../../schema/news"
+import type { UserOutput } from "../../schema/user"
+import { Router } from "@angular/router"
 
 @Component({
   selector: "app-admin",
@@ -17,117 +19,191 @@ export class AdminComponent {
   userService = inject(UserService)
   authService = inject(AuthService)
   newsService = inject(NewsService)
+  route = inject(Router);
 
+  isLogged = effect(() => {
+    if(!this.authService.authState().logged){
+      this.route.navigate(['/']);
+    }
+  })
+
+  activeSection = signal<"search" | "inactive" | "users">("search")
   searchQuery = ""
+
   showPasswordForm = false
+  showCleanUsersModal = false
+  showCleanNewsModal = false
   adminPassword = ""
   passwordError = ""
 
+  currentInactivePage = 1
+  inactiveNewsPerPage = 10
+
+  userSearchQuery = ""
+  filteredUsers = signal<UserOutput[]>([])
+  currentUserLimit = 10
+  userIncrement = 10
+
   ngOnInit() {
-    // Cargar datos iniciales
     this.loadInitialData()
   }
 
   private loadInitialData(): void {
     this.userService.getAll()
-    this.newsService.getInactive()
+    this.newsService.getInactive(this.inactiveNewsPerPage, 0)
+    this.filteredUsers.set(this.userService.userState().allUsers.data)
   }
 
-  // Método para buscar noticias
-  searchNews(): void {
-    if (this.searchQuery.trim()) {
-      // TODO: Implementar búsqueda de noticias
-      console.log("Buscando noticias con:", this.searchQuery)
+  setActiveSection(section: "search" | "inactive" | "users"): void {
+    this.activeSection.set(section)
+    if (section === "inactive") {
+      this.loadInactiveNews()
+    } else if (section === "users") {
+      this.filterUsers()
     }
   }
 
-  // Método para cargar noticias desde la API externa
+  searchNews(): void {
+    if (this.searchQuery.trim()) {
+      this.newsService.search(this.searchQuery)
+    }
+    this.searchQuery = ""
+  }
+
+  deleteNews(newsId: string): void {
+    this.newsService.changeStatus(newsId)
+  }
+
+  restoreNews(newsId: string): void {
+    this.newsService.changeStatus(newsId)
+  }
+
+  loadInactiveNews(): void {
+    const offset = (this.currentInactivePage - 1) * this.inactiveNewsPerPage
+    this.newsService.getInactive(this.inactiveNewsPerPage, offset)
+  }
+
+  getInactiveNewsList(): NewsOutput[] {
+    const inactiveData = this.newsService.state().inactive.data
+    const allNews: NewsOutput[] = []
+    for (const newsArray of inactiveData.values()) {
+      allNews.push(...newsArray)
+    }
+    return allNews
+  }
+
+  getCurrentPageInactiveNews(): NewsOutput[] {
+    const allNews = this.getInactiveNewsList()
+    const startIndex = (this.currentInactivePage - 1) * this.inactiveNewsPerPage
+    const endIndex = startIndex + this.inactiveNewsPerPage
+    return allNews.slice(startIndex, endIndex)
+  }
+
+  getTotalInactivePages(): number {
+    const total = this.newsService.state().inactive.total
+    return Math.ceil(total / this.inactiveNewsPerPage)
+  }
+
+  nextInactivePage(): void {
+    if (this.currentInactivePage < this.getTotalInactivePages()) {
+      this.currentInactivePage++
+      this.loadInactiveNews()
+    }
+  }
+
+  previousInactivePage(): void {
+    if (this.currentInactivePage > 1) {
+      this.currentInactivePage--
+      this.loadInactiveNews()
+    }
+  }
+
+  filterUsers(): void {
+    const allUsers = this.userService.userState().allUsers.data
+    if (!this.userSearchQuery.trim()) {
+      this.filteredUsers.set(allUsers)
+    } else {
+      const query = this.userSearchQuery.toLowerCase()
+      const filtered = allUsers.filter(
+        (user) => user.username.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
+      )
+      this.filteredUsers.set(filtered)
+    }
+    this.currentUserLimit = this.userIncrement
+  }
+
+  getFilteredUsers(): UserOutput[] {
+    return this.filteredUsers()
+  }
+
+  getCurrentPageUsers(): UserOutput[] {
+    return this.getFilteredUsers().slice(0, this.currentUserLimit)
+  }
+
+  hasMoreUsers(): boolean {
+    return this.getFilteredUsers().length > this.currentUserLimit
+  }
+
+  loadMoreUsers(): void {
+    this.currentUserLimit += this.userIncrement
+  }
+
+  deleteUser(userId: string): void {
+    this.userService.delete(userId)
+  }
+
   loadNews(): void {
     this.newsService.fetchApi()
   }
 
-  // Método para mostrar el formulario de contraseña
   showCleanUsersForm(): void {
     this.showPasswordForm = true
+    this.showCleanUsersModal = true
+    this.showCleanNewsModal = false
     this.adminPassword = ""
     this.passwordError = ""
   }
 
-  // Método para ocultar el formulario de contraseña
-  hideCleanUsersForm(): void {
+  showCleanNewsForm(): void {
+    this.showPasswordForm = true
+    this.showCleanNewsModal = true
+    this.showCleanUsersModal = false
+    this.adminPassword = ""
+    this.passwordError = ""
+  }
+
+  hidePasswordForm(): void {
     this.showPasswordForm = false
+    this.showCleanUsersModal = false
+    this.showCleanNewsModal = false
     this.adminPassword = ""
     this.passwordError = ""
   }
 
-  // Método para confirmar la limpieza de usuarios con contraseña
   confirmCleanUsers(): void {
     if (!this.adminPassword) {
       this.passwordError = "La contraseña es requerida"
       return
     }
-
     if (this.adminPassword.length < 6) {
       this.passwordError = "La contraseña debe tener al menos 6 caracteres"
       return
     }
+    this.userService.clean(this.adminPassword)
+    this.hidePasswordForm()
+  }
 
-    // TODO: Validar contraseña con el backend
-    // Por ahora simulamos la validación
-    if (this.adminPassword === "admin123") {
-      this.cleanUsers()
-      this.hideCleanUsersForm()
-    } else {
-      this.passwordError = "Contraseña incorrecta"
+  confirmCleanNews(): void {
+    if (!this.adminPassword) {
+      this.passwordError = "La contraseña es requerida"
+      return
     }
-  }
-
-  // Método para limpiar usuarios inactivos
-  private cleanUsers(): void {
-    // TODO: Implementar limpieza de usuarios
-    console.log("Limpiando usuarios inactivos...")
-    // Aquí iría la lógica para eliminar usuarios inactivos
-    // this.userService.cleanInactiveUsers()
-  }
-
-  // Método para limpiar noticias inactivas
-  cleanNews(): void {
-    this.newsService.clean()
-  }
-
-  // Método para restaurar una noticia inactiva
-  restoreNews(newsId: string): void {
-    this.newsService.changeStatus(newsId, false)
-  }
-
-  // Método para eliminar un usuario
-  deleteUser(userId: string): void {
-    // TODO: Implementar eliminación de usuario
-    // Debería mostrar confirmación antes de eliminar
-    console.log("Eliminando usuario:", userId)
-  }
-
-  // Método auxiliar para obtener la lista plana de noticias inactivas
-  getInactiveNewsList(): NewsOutput[] {
-    const inactiveData = this.newsService.state().inactive.data
-    const allNews: NewsOutput[] = []
-
-    for (const newsArray of inactiveData.values()) {
-      allNews.push(...newsArray)
+    if (this.adminPassword.length < 6) {
+      this.passwordError = "La contraseña debe tener al menos 6 caracteres"
+      return
     }
-
-    return allNews
+    this.newsService.clean(this.adminPassword)
+    this.hidePasswordForm()
   }
 
-  // Método auxiliar para formatear fechas
-  formatDate(timestamp: string | Date): string {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
 }

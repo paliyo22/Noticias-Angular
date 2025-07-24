@@ -87,18 +87,18 @@ export class HomeComponent implements OnInit {
         pages.push(i);
       }
     } else {
-      if (current <= 4) {
-        for (let i = 1; i <= 5; i++) pages.push(i);
+      if (current <= 5) {
+        for (let i = 1; i <= 6; i++) pages.push(i);
         pages.push('...');
         pages.push(total);
       } else if (current >= total - 3) {
         pages.push(1);
         pages.push('...');
-        for (let i = total - 4; i <= total; i++) pages.push(i);
+        for (let i = total - 5; i <= total; i++) pages.push(i);
       } else {
         pages.push(1);
         pages.push('...');
-        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+        for (let i = current - 5; i <= current + 5; i++) pages.push(i);
         pages.push('...');
         pages.push(total);
       }

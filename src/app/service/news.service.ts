@@ -11,7 +11,7 @@ import { AuthService } from './auth.service';
 })
 export class NewsService {
 
-  private apiUrl = 'http://localhost:1234';
+  private apiUrl = 'https://server-news-project.onrender.com';
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   
@@ -43,6 +43,11 @@ export class NewsService {
     singleNews: {
       data: null as NewsOutput | null,
       subData: [] as NewsOutput[] | null,
+      loading: false,
+      error: null as string | null
+    },
+    search: {
+      data: null as NewsOutput[] | null,
       loading: false,
       error: null as string | null
     }
@@ -258,7 +263,7 @@ export class NewsService {
     ).subscribe();
   }
 
-  changeStatus(id: string, isCurrentlyActive: boolean): void {
+  changeStatus(id: string): void {
     this.state.update(state => ({
       ...state,
       news: { ...state.news, loading: true },
@@ -272,32 +277,15 @@ export class NewsService {
       tap({
         next: () => {
           this.state.update(state => {
-            const newsMap = new Map(state.news.data);
-            const inactiveMap = new Map(state.inactive.data);
-
-            if (isCurrentlyActive) {
-              newsMap.clear();                  
-            } else {
-              for (const [key, item] of inactiveMap.entries()) {
-                const newItem = item.filter(i => i.id !== id);
-                if (newItem.length !== item.length) {
-                  inactiveMap.set(key, newItem); 
-                  break; 
-                }
-              }
-            }
+            const newsMap = new Map(state.news.data);       
+            newsMap.clear();                 
+            this.getInactive();
             
             return {
               ...state,
               news: {
                 ...state.news,
                 data: newsMap,
-                loading: false,
-                error: null
-              },
-              inactive: {
-                ...state.inactive,
-                data: inactiveMap,
                 loading: false,
                 error: null
               }
@@ -324,7 +312,7 @@ export class NewsService {
     ).subscribe();
   }
 
-  clean(): void {
+  clean(password: string): void {
     this.state.update(state => ({
       ...state,
       inactive: {
@@ -335,7 +323,7 @@ export class NewsService {
     }));
 
     withAuthRetry<{ message: string }>(() =>
-      this.http.delete<{ message: string }>(`${this.apiUrl}/news/clean`, { withCredentials: true }),
+      this.http.delete<{ message: string }>(`${this.apiUrl}/news/clean`, {body: {password}, withCredentials: true}),
       this.authService
     ).pipe(
       tap({
@@ -349,7 +337,7 @@ export class NewsService {
               error: null
             }
           }));
-
+          this.getInactive();
           console.log(response.message);
         }
       }),
@@ -362,6 +350,9 @@ export class NewsService {
               error: error.error?.error|| 'Error al limpiar noticias'
             }
           }));
+          if(error.status === 401){
+            this.authService.setState();
+          }
         return of(null); 
       })
     ).subscribe();
@@ -443,6 +434,45 @@ export class NewsService {
         return of(null); 
       })
     ).subscribe()
+  }
+
+  search(contain: string): void {
+
+    this.state.update(state => ({
+      ...state,
+      search: {
+        data: null,
+        loading: true,
+        error: null
+      }
+    }));
+
+    this.http.post<{news: NewsOutput[]}>(`${this.apiUrl}/news/search`, {contain})
+    .pipe(
+      tap({
+        next: (response) => {
+          this.state.update((state) => ({
+            ...state,
+            search: {
+              data: response.news,
+              loading: false,
+              error: null
+            }
+          }));
+        }
+      }),
+      catchError((error) => {
+          this.state.update((state) => ({
+            ...state,
+            search: {
+              data: null,
+              loading: false,
+              error: error.error?.error || 'Error al cargar noticias'
+            }
+          }));
+        return of(null); 
+      })
+    ).subscribe();
   }
 }
 

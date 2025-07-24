@@ -4,7 +4,6 @@ import type { UserInput } from "../../schema/user"
 import { AuthService } from "../../service/auth.service"
 import { UserService } from "../../service/user.service"
 import { CommonModule } from "@angular/common"
-import { Router } from "@angular/router"
 
 @Component({
   selector: "app-user",
@@ -17,7 +16,6 @@ export class UserComponent implements OnInit {
   // --- CONSTANTES Y SEÑALES ---
   userService = inject(UserService);
   authService = inject(AuthService);
-  private router = inject(Router);
   private fb = inject(FormBuilder);
 
   // Estado del componente
@@ -35,13 +33,6 @@ export class UserComponent implements OnInit {
   userData = computed(() => this.userService.userState().user.data);
   authError = computed(() => this.authService.authState().error);
   authLoading = computed(() => this.authService.authState().loading);
-
-  // --- MÉTODOS DE LÓGICA DEL PROGRAMA ---
-  logState = effect(() => {
-    if (!this.authService.authState().logged) {
-      this.router.navigate(['/']);
-    }
-  });
 
   closeEditEffect = effect(() => {
     if (!this.isLoading() && !this.userError()) {

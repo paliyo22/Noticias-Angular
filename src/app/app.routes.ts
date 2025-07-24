@@ -6,14 +6,18 @@ import { NotFoundComponent } from './component/not-found/not-found.component';
 import { SignUpComponent } from './component/sign-up/sign-up.component';
 import { UserComponent } from './component/user/user.component';
 import { AdminComponent } from './component/admin/admin.component';
-import { adminguardGuard } from './guard/adminguard.guard';
+import { adminGuard } from './guard/admin.guard';
+import { loggedGuard } from './guard/logged.guard';
+import { Role } from './enum/role';
+import { SearchComponent } from './component/search/search.component';
 
 export const routes: Routes = [
     {path: '', component: HomeComponent},
     {path: 'news/:id', component: NewsComponent},
     {path: 'category/:category', component: CategoryNewsComponent},
-    {path: 'sign-up', component: SignUpComponent},
-    {path: 'user', component: UserComponent},
-    {path: 'admin', component: AdminComponent, canActivate: [adminguardGuard]},
+    {path: 'sign-up', component: SignUpComponent, canActivate: [loggedGuard(false)]},
+    {path: 'user', component: UserComponent, canActivate: [loggedGuard(true)]},
+    {path: 'admin', component: AdminComponent, canActivate: [loggedGuard(true), adminGuard(Role.ADMIN)]},
+    {path: 'search/:content', component: SearchComponent},
     {path: '**', component: NotFoundComponent}
 ];
