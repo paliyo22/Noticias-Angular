@@ -272,7 +272,7 @@ export class UserService {
         }
       }),
       catchError((error) => {
-        this.userState.update(state => ({
+        this.userState.update((state) => ({
           ...state,
           result: {
             state: false,
@@ -280,6 +280,9 @@ export class UserService {
             error: error.error?.error || 'Error al limpiar'
           }
         }));
+        if(error.status === 401){
+          this.authService.setState();
+        }
         return of(null); 
       })
     ).subscribe();

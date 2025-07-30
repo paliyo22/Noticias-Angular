@@ -260,11 +260,11 @@ export class AuthService {
       }),
       switchMap(() => of(true)),
       catchError(error => {
-        this.authState.update(() => ({
-          logged: false,
-          username: null,
-          role: null,
-          loading: false,
+        if(error.status !== 500){
+          this.setState();
+        }
+        this.authState.update((state) => ({
+          ...state,
           error: error.error?.error || 'Error al refrescar token'
         }));
         return of(false);

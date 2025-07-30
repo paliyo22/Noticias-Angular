@@ -342,7 +342,7 @@ export class NewsService {
         }
       }),
       catchError((error) => {
-        this.state.update(state => ({
+        this.state.update((state) => ({
             ...state,
             inactive: {
               ...state.inactive,
@@ -419,18 +419,41 @@ export class NewsService {
   } 
 
   fetchApi(): void {
+    this.state.update(state => ({
+      ...state,
+      news: {
+        ...state.news,
+        loading: true,
+        error: null
+      }
+    }));
     withAuthRetry<void>(() =>
       this.http.post<void>(`${this.apiUrl}/news/fetch`, {}, {withCredentials: true}),
       this.authService
     ).pipe(
       tap({
         next: () => {
-          console.log('Se cargo todo correctamente');
+          this.state.update((state) => ({
+            ...state,
+            news: {
+              ...state.news,
+              loading: false,
+              error: null
+            }
+          }));
+          this.getNews(9);
         }
       }),
       catchError((error) => {
-        const aux = error.error?.error || 'Error al cargar noticias desde la api';
-        console.error(aux);
+        this.state.update(state => ({
+          ...state,
+          news: {
+            ...state.news,
+            loading: false,
+            error: error.error?.error || 'Error al cargar noticias desde la api'
+          }
+        }));
+        console.log(this.state().news.error);
         return of(null); 
       })
     ).subscribe()
