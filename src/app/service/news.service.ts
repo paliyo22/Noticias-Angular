@@ -419,10 +419,8 @@ export class NewsService {
   } 
 
   fetchApi(): void {
-    withAuthRetry<void>(() =>
-      this.http.post<void>(`${this.apiUrl}/news/fetch`, {}),
-      this.authService
-    ).pipe(
+    this.http.post<void>(`${this.apiUrl}/news/fetch`, {})
+    .pipe(
       catchError((error) => {
         console.log(error.error?.error || 'Error al cargar noticias desde la api');
         return of(null); 
