@@ -14,6 +14,10 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       const authService = inject(AuthService);
       return firstValueFrom(authService.refresh$()); 
+    }),
+    provideAppInitializer(() => {
+      const newsService = inject(NewsService);
+      newsService.fetchApi();
     })
   ]
 }
