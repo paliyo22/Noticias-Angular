@@ -419,41 +419,12 @@ export class NewsService {
   } 
 
   fetchApi(): void {
-    this.state.update(state => ({
-      ...state,
-      news: {
-        ...state.news,
-        loading: true,
-        error: null
-      }
-    }));
     withAuthRetry<void>(() =>
-      this.http.post<void>(`${this.apiUrl}/news/fetch`, {}, {withCredentials: true}),
+      this.http.post<void>(`${this.apiUrl}/news/fetch`, {}),
       this.authService
     ).pipe(
-      tap({
-        next: () => {
-          this.state.update((state) => ({
-            ...state,
-            news: {
-              ...state.news,
-              loading: false,
-              error: null
-            }
-          }));
-          this.getNews(9);
-        }
-      }),
       catchError((error) => {
-        this.state.update(state => ({
-          ...state,
-          news: {
-            ...state.news,
-            loading: false,
-            error: error.error?.error || 'Error al cargar noticias desde la api'
-          }
-        }));
-        console.log(this.state().news.error);
+        console.log(error.error?.error || 'Error al cargar noticias desde la api');
         return of(null); 
       })
     ).subscribe()
