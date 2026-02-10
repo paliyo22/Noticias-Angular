@@ -2,7 +2,6 @@ import { CommonModule } from "@angular/common"
 import { ChangeDetectionStrategy, Component, computed, inject, type OnInit } from "@angular/core"
 import { FormBuilder, type FormGroup, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms"
 import { AuthService } from "../../service/auth.service"
-import { Role } from "../../enum/role"
 import { type UserInput, validateImputUser } from "../../schema/user"
 
 @Component({
@@ -19,8 +18,6 @@ export class SignUpComponent implements OnInit {
   currentError = computed(() => this.authService.authState().error);
   
   maxDate = new Date().toISOString().split("T")[0]
-
-  Role = Role
 
   private dateValidator = (control: any) => {
     if (!control.value) return null
@@ -42,7 +39,6 @@ export class SignUpComponent implements OnInit {
     username: ["", [Validators.required, Validators.minLength(4)]],
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required, Validators.minLength(6)]],
-    role: ["", [Validators.required]],
     subscription: [false],
   })
 

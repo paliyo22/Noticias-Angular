@@ -1,13 +1,12 @@
 import { string, email, minLength, object, date, toMaxValue, optional, boolean, maxValue, 
-    enum_, uuid, pipe, InferInput, partial, safeParse, union } from "valibot";
-import { Role } from "../enum/role";
+    uuid, pipe, InferInput, partial, safeParse, union } from "valibot";
+
 
 const emailSchema = pipe(string(), email());
 const passwordSchema = pipe(string(), minLength(6));
 
 const sessionSchema = object({
-    username: pipe(string(), minLength(4)),
-    role: enum_(Role),
+    username: pipe(string(), minLength(4))
 })
 
 const userSchema = object({

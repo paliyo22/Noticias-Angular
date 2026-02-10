@@ -5,10 +5,7 @@ import { CategoryNewsComponent } from './component/category-news/category-news.c
 import { NotFoundComponent } from './component/not-found/not-found.component';
 import { SignUpComponent } from './component/sign-up/sign-up.component';
 import { UserComponent } from './component/user/user.component';
-import { AdminComponent } from './component/admin/admin.component';
-import { adminGuard } from './guard/admin.guard';
 import { loggedGuard } from './guard/logged.guard';
-import { Role } from './enum/role';
 import { SearchComponent } from './component/search/search.component';
 
 export const routes: Routes = [
@@ -17,7 +14,6 @@ export const routes: Routes = [
     {path: 'category/:category', component: CategoryNewsComponent},
     {path: 'sign-up', component: SignUpComponent, canActivate: [loggedGuard(false)]},
     {path: 'user', component: UserComponent, canActivate: [loggedGuard(true)]},
-    {path: 'admin', component: AdminComponent, canActivate: [loggedGuard(true), adminGuard(Role.ADMIN)]},
     {path: 'search/:content', component: SearchComponent},
     {path: '**', component: NotFoundComponent}
 ];

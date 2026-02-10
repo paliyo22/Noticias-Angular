@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from './service/auth.service';
 import { AuthInput } from './schema/user';
-import { Role } from './enum/role';
 
 
 
@@ -27,7 +26,6 @@ export class AppComponent {
   private router = inject(Router)
 
   showLoginForm = signal(false)
-  Role = Role;
 
   private isCurrentRoute(route: string): boolean {
     return this.router.url === route || this.router.url.startsWith(route + "?")

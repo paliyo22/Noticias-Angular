@@ -152,10 +152,6 @@ export class AdminComponent {
     this.userService.delete(userId)
   }
 
-  loadNews(): void {
-    this.newsService.fetchApi()
-  }
-
   showCleanUsersForm(): void {
     this.showPasswordForm = true
     this.showCleanUsersModal = true

@@ -142,22 +142,6 @@
                 </span>
               }
             </div>
-
-            <div class="form-group">
-              <label for="role">Tipo de Usuario *</label>
-              <select
-                id="role"
-                formControlName="role"
-                [class.error]="isFieldInvalid('role')"
-              >
-                <option value="">Selecciona un tipo</option>
-                <option [value]="Role.USER">Usuario</option>
-                <option [value]="Role.ADMIN">Administrador</option>
-              </select>
-              @if (isFieldInvalid('role')) {
-                <span class="error-text">Selecciona un tipo de usuario</span>
-              }
-            </div>
           </div>
 
           <!-- Subscription -->

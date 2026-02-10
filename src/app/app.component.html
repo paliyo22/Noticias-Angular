@@ -124,16 +124,7 @@
               routerLinkActive="active">
               Mi perfil
             </button>
-            <!-- Botón Admin solo para usuarios con rol USER -->
-            @if (authObject.role === Role.ADMIN) {
-              <button 
-                type="button" 
-                class="btn btn-primary" 
-                routerLink="/admin" 
-                routerLinkActive="active">
-                Admin
-              </button>
-            }
+            
             <button 
               type="button" 
               class="btn btn-outline" 

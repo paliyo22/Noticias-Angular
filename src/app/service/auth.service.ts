@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { catchError, Observable, of, switchMap, tap } from 'rxjs';
 import { AuthInput, Session, UserInput } from '../schema/user';
-import { Role } from '../enum/role';
 import { withAuthRetry } from '../helper/http-helper';
 
 @Injectable({
@@ -16,7 +15,6 @@ export class AuthService {
   authState = signal({
     logged: false,
     username: null as string | null,
-    role: null as Role | null,
     loading: false,
     error: null as string | null
   });
@@ -25,7 +23,6 @@ export class AuthService {
     this.authState.update(() => ({
       logged: false,
       username: null,
-      role: null,
       loading: false,
       error: null
     }));
@@ -48,7 +45,6 @@ export class AuthService {
           this.authState.update(() => ({
             logged: true,
             username: response.username,
-            role: response.role,
             loading: false,
             error: null
           }));
@@ -82,7 +78,6 @@ export class AuthService {
           this.authState.update(() => ({
             logged: true,
             username: response.username,
-            role: response.role,
             loading: false,
             error: null
           }));
@@ -116,7 +111,6 @@ export class AuthService {
           this.authState.update(() => ({
             logged: false,
             username: null,
-            role: null,
             loading: false,
             error: null
           }));
@@ -150,7 +144,6 @@ export class AuthService {
           this.authState.update(() => ({
             logged: true,
             username: response.username,
-            role: response.role,
             loading: false,
             error: null
           }));
@@ -160,7 +153,6 @@ export class AuthService {
         this.authState.update(() =>({
           logged: false,
           username: null,
-          role: null,
           loading: false,
           error: error.error?.error || 'Error al refrescar token' 
         }));
@@ -204,40 +196,6 @@ export class AuthService {
     ).subscribe();
   }
 
-  newRole(id: string, role: Role): void {
-
-    this.authState.update(state =>({
-      ...state,
-      loading: true,
-      error: null
-    }));
-
-    withAuthRetry<void>(() =>
-      this.http.post<void>(
-      `${this.apiUrl}/auth/role`,
-      {id, role}, { withCredentials: true }),
-      this
-    ).pipe(
-      tap({
-        next: () => {
-          this.authState.update(state => ({
-            ...state,
-            loading: false,
-            error: null
-          }));
-        }
-      }),
-      catchError((error) => {
-        this.authState.update(state =>({
-          ...state,
-          loading: false,
-          error: error.error?.error || `Error al cambiar el rol del usuario ${id}`  
-        }));
-        return of(null); 
-      })
-    ).subscribe();
-  }
-
   refresh$(): Observable<boolean> {
     this.authState.update(state => ({
       ...state,
@@ -253,7 +211,6 @@ export class AuthService {
         this.authState.update(() => ({
           logged: true,
           username: response.username,
-          role: response.role,
           loading: false,
           error: null
         }));
