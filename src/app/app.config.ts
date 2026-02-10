@@ -12,8 +12,8 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideAppInitializer(() => {
-      const newsService = inject(NewsService);
-      newsService.fetchApi();
+      const authService = inject(AuthService);
+      return firstValueFrom(authService.refresh$()); 
     })
   ]
 }
