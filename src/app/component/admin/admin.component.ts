@@ -151,12 +151,26 @@ export class AdminComponent {
   deleteUser(userId: string): void {
     this.userService.delete(userId).subscribe({
       next: () => {
-        console.log('funciona');
+        this.userService.userState.update(state => {
+          const updatedAllUsers = state.allUsers.data.map(user => 
+            user.id === userId 
+              ? { ...user, is_active: !user.is_active }
+              : user
+          );
+          
+          return {
+            ...state,
+            allUsers: {
+              ...state.allUsers,
+              data: updatedAllUsers
+            }
+          };
+        });
       },
       error: (error) => {
-        console.error('Logout error:', error);
+        console.error('Delete user error:', error);
       }
-    })
+    });
   }
 
   loadNews(): void {
