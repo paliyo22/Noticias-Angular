@@ -241,6 +241,48 @@ export class UserService {
       })
     );
   }
+
+  restoreAccount(id: string): Observable<void> {
+    
+    this.userState.update(state => ({
+      ...state,
+      result: {
+        state: false,
+        loading: true,
+        error: null
+      }
+    }));
+    
+    return withAuthRetry<void>(() =>
+      this.http.post<void>(`${this.apiUrl}/auth/restore`, {id}, {withCredentials: true}),
+      this.authService
+    ).pipe(
+      tap({
+        next: () => {
+          this.userState.update(state => ({
+            ...state,
+            result: {
+              state: true,
+              loading: false,
+              error: null
+            }
+          }));
+          this.getAll();
+        }
+      }),
+      catchError((error) => {
+        this.userState.update(state => ({
+          ...state,
+          result: {
+            state: false,
+            loading: false,
+            error: error.error?.error || 'Error al restaurar'
+          }
+        }));
+        return throwError(() => error);  
+      })
+    );
+  }
   // ------ se pueden implementar effects en los componentes para que los ressult tengan impacto en el programa---
   clean(password: string): void { 
 

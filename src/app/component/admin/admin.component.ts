@@ -148,29 +148,27 @@ export class AdminComponent {
     this.currentUserLimit += this.userIncrement
   }
 
-  deleteUser(userId: string): void {
-    this.userService.delete(userId).subscribe({
-      next: () => {
-        this.userService.userState.update(state => {
-          const updatedAllUsers = state.allUsers.data.map(user => 
-            user.id === userId 
-              ? { ...user, is_active: !user.is_active }
-              : user
-          );
-          
-          return {
-            ...state,
-            allUsers: {
-              ...state.allUsers,
-              data: updatedAllUsers
-            }
-          };
-        });
-      },
-      error: (error) => {
-        console.error('Delete user error:', error);
-      }
-    });
+  deleteUser(userId: string, is_active: boolean): void {
+    if(is_active){
+      this.userService.delete(userId).subscribe({
+        next: () => {
+          console.log('funciona')
+        },
+        error: (error) => {
+          console.error('Logout error:', error);
+        }
+      })
+    }else{
+      this.userService.restoreAccount(userId).subscribe({
+        next: () => {
+          console.log('funciona')
+        },
+        error: (error) => {
+          console.error('Logout error:', error);
+        }
+      })
+    }
+    
   }
 
   loadNews(): void {

@@ -209,14 +209,14 @@
                     @if (user.is_active) {
                       <button 
                         class="btn btn-danger btn-sm" 
-                        (click)="deleteUser(user.id!)"
+                        (click)="deleteUser(user.id!, user.is_active!)"
                         [disabled]="userObject.result.loading">
                         Eliminar
                       </button>
                     } @else {
                       <button 
                         class="btn btn-outline-primary btn-sm" 
-                        (click)="deleteUser(user.id!)"
+                        (click)="deleteUser(user.id!, user.is_active!)"
                         [disabled]="userObject.result.loading">
                         Restaurar
                       </button>
