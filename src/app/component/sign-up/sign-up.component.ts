@@ -4,6 +4,7 @@ import { FormBuilder, type FormGroup, FormsModule, ReactiveFormsModule, Validato
 import { AuthService } from "../../service/auth.service"
 import { Role } from "../../enum/role"
 import { type UserInput, validateImputUser } from "../../schema/user"
+import { Router } from "@angular/router"
 
 @Component({
   selector: "app-sign-up",
@@ -15,6 +16,7 @@ import { type UserInput, validateImputUser } from "../../schema/user"
 export class SignUpComponent implements OnInit {
   authService = inject(AuthService);
   private fb = inject(FormBuilder);
+  private router = inject(Router)
 
   currentError = computed(() => this.authService.authState().error);
   
@@ -91,6 +93,14 @@ export class SignUpComponent implements OnInit {
       return
     }
 
-    this.authService.register(validation.output as UserInput);
+    this.authService.register(validation.output as UserInput).subscribe({
+      next: (response) => {
+        console.log('Registro exitoso:', response.username);
+        this.router.navigate(['/']); 
+      },
+      error: (error) => {
+        console.error('Registro fallido:', error);
+      }
+    });
   }
 }

@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { catchError, Observable, of, switchMap, tap } from 'rxjs';
+import { catchError, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { AuthInput, Session, UserInput } from '../schema/user';
 import { Role } from '../enum/role';
 import { withAuthRetry } from '../helper/http-helper';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -31,15 +32,15 @@ export class AuthService {
     }));
   }
   
-  register(body: UserInput): void {
-    
+  register(body: UserInput): Observable<Session> {
+  
     this.authState.update(state =>({
       ...state,
       loading: true,
       error: null
     }));
 
-    this.http.post<Session>(
+    return this.http.post<Session>(
       `${this.apiUrl}/auth/register`,
       body, { withCredentials: true }
     ).pipe(
@@ -60,12 +61,12 @@ export class AuthService {
           loading: false,
           error: error.error?.error || 'Error al registrarse' 
         }));
-        return of(null); 
+        return throwError(() => error); 
       })
-    ).subscribe();
+    );
   }
 
-  logIn(auth: AuthInput): void {
+  logIn(auth: AuthInput): Observable<Session> {
     
     this.authState.update(state =>({
       ...state,
@@ -73,7 +74,7 @@ export class AuthService {
       error: null
     }));
 
-    this.http.post<Session>(
+    return this.http.post<Session>(
       `${this.apiUrl}/auth/login`,
       auth, { withCredentials: true }
     ).pipe(
@@ -94,12 +95,12 @@ export class AuthService {
           loading: false,
           error: error.error?.error || 'Error al ingresar' 
         }));
-        return of(null); 
+        return throwError(() => error);
       })
-    ).subscribe();
+    );
   }
 
-  logOut(): void {
+  logOut(): Observable<void> {
 
     this.authState.update(state =>({
       ...state,
@@ -107,67 +108,24 @@ export class AuthService {
       error: null
     }));
     
-    this.http.post<void>(
+    return this.http.post<void>(
       `${this.apiUrl}/auth/logout`,
       {}, { withCredentials: true }
     ).pipe(
       tap({
         next: () => {
-          this.authState.update(() => ({
-            logged: false,
-            username: null,
-            role: null,
-            loading: false,
-            error: null
-          }));
+          this.setState();
         }
       }),
       catchError((error) => {
+        this.setState();
         this.authState.update(state =>({
           ...state,
-          loading: false,
           error: error.error?.error || 'Error en logout' 
         }));
-        return of(null); 
+        return throwError(() => error); 
       })
-    ).subscribe();
-  }
-
-  refresh(): void {
-
-    this.authState.update(state =>({
-      ...state,
-      loading: true,
-      error: null
-    }));
-
-    this.http.post<Session>(
-      `${this.apiUrl}/auth/refresh`,
-      {}, { withCredentials: true }
-    ).pipe(
-      tap({
-        next: (response) => {
-          this.authState.update(() => ({
-            logged: true,
-            username: response.username,
-            role: response.role,
-            loading: false,
-            error: null
-          }));
-        }
-      }),
-      catchError((error) => {
-        this.authState.update(() =>({
-          logged: false,
-          username: null,
-          role: null,
-          loading: false,
-          error: error.error?.error || 'Error al refrescar token' 
-        }));
-        console.log(error.error.error);
-        return of(null); 
-      })
-    ).subscribe();
+    );
   }
 
   newPassword(oldPass: string, newPass: string): void {

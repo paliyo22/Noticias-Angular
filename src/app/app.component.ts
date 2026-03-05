@@ -53,17 +53,33 @@ export class AppComponent {
   onSubmit() {
     if (this.form.valid) {
       const aux: AuthInput = this.form.value
-      this.authService.logIn(aux)
-      this.closeLoginForm()
-    }
-    if (this.isCurrentRoute("/sign-up")) {
-      this.router.navigate(["/"])
+
+      this.authService.logIn(aux).subscribe({
+        next: (response) => {
+          console.log('Login exitoso:', response.username);
+          this.closeLoginForm(); 
+          
+          if (this.isCurrentRoute("/sign-up")) {
+            this.router.navigate(["/"]);
+          }
+        },
+        error: (error) => {
+          console.error('Login fallido:', error);
+        }
+      });
     }
   }
 
   onLogout() {
-    this.authService.logOut()
-    this.router.navigate(['/'])
+    this.authService.logOut().subscribe({
+      next: () => {
+        this.router.navigate(['/']);
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        this.router.navigate(['/']); 
+      }
+    });
   }
 
   onDocumentClick(event: Event) {
