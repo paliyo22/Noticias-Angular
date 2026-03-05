@@ -149,26 +149,25 @@ export class AdminComponent {
   }
 
   deleteUser(userId: string, is_active: boolean): void {
-    if(is_active){
-      this.userService.delete(userId).subscribe({
-        next: () => {
-          console.log('funciona')
-        },
-        error: (error) => {
-          console.error('Logout error:', error);
-        }
-      })
-    }else{
-      this.userService.restoreAccount(userId).subscribe({
-        next: () => {
-          console.log('funciona')
-        },
-        error: (error) => {
-          console.error('Logout error:', error);
-        }
-      })
-    }
-    
+    const action$ = is_active
+      ? this.userService.delete(userId)
+      : this.userService.restoreAccount(userId);
+
+    action$.subscribe({
+      next: () => {
+        this.userService.userState.update(state => ({
+          ...state,
+          allUsers: {
+            ...state.allUsers,
+            data: state.allUsers.data.map(user =>
+              user.id === userId ? { ...user, is_active: !user.is_active } : user
+            )
+          }
+        }));
+        this.filterUsers(); // re-setea filteredUsers con los datos actualizados
+      },
+      error: (error) => console.error(error)
+    });
   }
 
   loadNews(): void {

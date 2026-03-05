@@ -225,7 +225,6 @@ export class UserService {
               error: null
             }
           }));
-          this.getAll();
         }
       }),
       catchError((error) => {
@@ -267,7 +266,6 @@ export class UserService {
               error: null
             }
           }));
-          this.getAll();
         }
       }),
       catchError((error) => {
