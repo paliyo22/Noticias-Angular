@@ -206,12 +206,22 @@
                         </div>
                       </div>
                     </div>
-                    <button 
-                      class="btn btn-danger btn-sm" 
-                      (click)="deleteUser(user.id!)"
-                      [disabled]="userObject.result.loading">
-                      Eliminar
-                    </button>
+                    @if (user.is_active) {
+                      <button 
+                        class="btn btn-danger btn-sm" 
+                        (click)="deleteUser(user.id!)"
+                        [disabled]="userObject.result.loading">
+                        Eliminar
+                      </button>
+                    } @else {
+                      <button 
+                        class="btn btn-outline-primary btn-sm" 
+                        (click)="deleteUser(user.id!)"
+                        [disabled]="userObject.result.loading">
+                        Restaurar
+                      </button>
+                    }
+                    
                   </div>
                 }
               </div>

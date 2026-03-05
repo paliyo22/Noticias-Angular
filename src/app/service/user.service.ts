@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { catchError, of, tap } from 'rxjs';
+import { catchError, Observable, of, tap, throwError } from 'rxjs';
 import { UserInput, UserOutput } from '../schema/user';
 import { withAuthRetry } from '../helper/http-helper';
 import { AuthService } from './auth.service';
@@ -200,7 +200,7 @@ export class UserService {
     ).subscribe();
   }
 
-  delete(id?: string): void {
+  delete(id?: string): Observable<void> {
     
     this.userState.update(state => ({
       ...state,
@@ -211,7 +211,7 @@ export class UserService {
       }
     }));
     
-    withAuthRetry<void>(() =>
+    return withAuthRetry<void>(() =>
       this.http.post<void>(`${this.apiUrl}/user/delete`, {id}, {withCredentials: true}),
       this.authService
     ).pipe(
@@ -237,9 +237,9 @@ export class UserService {
             error: error.error?.error || 'Error al borrar'
           }
         }));
-        return of(null); 
+        return throwError(() => error);  
       })
-    ).subscribe();
+    );
   }
   // ------ se pueden implementar effects en los componentes para que los ressult tengan impacto en el programa---
   clean(password: string): void { 

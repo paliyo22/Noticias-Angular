@@ -4,6 +4,7 @@ import type { UserInput } from "../../schema/user"
 import { AuthService } from "../../service/auth.service"
 import { UserService } from "../../service/user.service"
 import { CommonModule } from "@angular/common"
+import { Router } from "@angular/router"
 
 @Component({
   selector: "app-user",
@@ -16,6 +17,7 @@ export class UserComponent implements OnInit {
   // --- CONSTANTES Y SEÑALES ---
   userService = inject(UserService);
   authService = inject(AuthService);
+  private router = inject(Router)
   private fb = inject(FormBuilder);
 
   // Estado del componente
@@ -165,11 +167,17 @@ export class UserComponent implements OnInit {
   }
 
   deleteAccount() {
-    if (confirm("¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.")) {
-      this.userService.delete();
-      this.authService.logOut();
+    if (confirm("¿Estás seguro de que quieres eliminar tu cuenta?")) {
+      this.userService.delete().subscribe({
+        next: () => {
+          this.authService.setState();
+        },
+        error: (error) => {
+          console.error('Logout error:', error);
+        }
+      });
+      this.router.navigate(['/']);
     }
-
   }
 
   // Getters para usar en el template

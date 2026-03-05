@@ -149,7 +149,14 @@ export class AdminComponent {
   }
 
   deleteUser(userId: string): void {
-    this.userService.delete(userId)
+    this.userService.delete(userId).subscribe({
+      next: () => {
+        console.log('funciona');
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+      }
+    })
   }
 
   loadNews(): void {
